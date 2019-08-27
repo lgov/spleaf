@@ -1,0 +1,5 @@
+MANIFEST
+dist/*
+doc/build/*
+doc/source/classes/*
+*/__pycache__/*
