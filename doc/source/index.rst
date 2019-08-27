@@ -7,11 +7,11 @@ Installation
 
 The S+LEAF package can be installed using the pip utility
 
-``pip install --extra-index-url https://www.astro.unige.ch/people/jean-baptiste.delisle/spleaf spleaf``
+``pip install --extra-index-url https://www.astro.unige.ch/people/jean-baptiste.delisle spleaf``
 
 and upgraded with
 
-``pip install --extra-index-url https://www.astro.unige.ch/people/jean-baptiste.delisle/spleaf spleaf --upgrade``
+``pip install --extra-index-url https://www.astro.unige.ch/people/jean-baptiste.delisle spleaf --upgrade``
 
 Usage
 -----
