@@ -28,7 +28,7 @@ to model correlated noise in a radial velocity timeseries
 using S+LEAF matrices (see also [1]_).
 
 Examples of the use of the S+LEAF package are available at
-`<https://gitlab.unige.ch/jean-baptiste.delisle/spleaf/examples/>`_.
+`<https://gitlab.unige.ch/jean-baptiste.delisle/spleaf/tree/master/examples/>`_.
 
 API Reference
 -------------
