@@ -12,9 +12,13 @@ def read_rdb(filename):
   data = np.genfromtxt(filename, delimiter='\t', skip_header=2,
     comments='#', dtype=None, encoding=None)
   datadic = {}
-  for colid, colname in enumerate(header.split()):
-    datadic[colname] = np.array([line[colid] for line in data],
-      dtype=data.dtype[colid])
+  if len(data.shape) == 2:
+    for colid, colname in enumerate(header.split()):
+      datadic[colname] = data[:,colid]
+  else:
+    for colid, colname in enumerate(header.split()):
+      datadic[colname] = np.array([line[colid] for line in data],
+        dtype=data.dtype[colid])
   return(datadic)
 
 def periodogram(rv, cov, M0, nu0_rad_d, dnu_rad_d, nfreq):
