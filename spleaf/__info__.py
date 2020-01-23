@@ -23,4 +23,4 @@ __author__ = 'Jean-Baptiste Delisle'
 __author_email__ = 'jean-baptiste.delisle@unige.ch'
 __license__ = 'GPLv3'
 __url__ = 'https://gitlab.unige.ch/jean-baptiste.delisle/spleaf'
-__version__ = "0.1.1"
+__version__ = "0.1.2"
