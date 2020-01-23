@@ -70,7 +70,7 @@ Release and deploy on Production:
     - git push origin "$TAG_VERSION" --quiet
     - CHANGES=`cat CHANGES.txt`
     # Add release on gitlab (via gitlab API)
-    - curl -X POST -H "PRIVATE-TOKEN:$RELEASE_TOKEN" -F "name=Release spleaf $TAG_VERSION" -F "tag_name=$TAG_VERSION" -F "ref=$TAG_VERSION" -F "description=Changes:$CHANGES" 'https://gitlab.unige.ch/api/v4/projects/1367/releases'
+    - curl -X POST -H "PRIVATE-TOKEN:$RELEASE_TOKEN" -F "name=Release spleaf $TAG_VERSION" -F "tag_name=$TAG_VERSION" -F "ref=$TAG_VERSION" -F "description=Changes:$CHANGES" 'https://gitlab.unige.ch/api/v4/projects/1383/releases'
     # Deploy on production
     - cp dist/*.tar.gz /www/people/delisle/public/spleaf
     - rm -rf /www/people/delisle/public/spleaf/doc/*
