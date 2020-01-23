@@ -161,18 +161,18 @@ static PyObject *libspleaf_spleaf_cholesky(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_A = PyArray_FROM_OTF(obj_A, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_V = PyArray_FROM_OTF(obj_V, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_F = PyArray_FROM_OTF(obj_F, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_D = PyArray_FROM_OTF(obj_D, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_S = PyArray_FROM_OTF(obj_S, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_Z = PyArray_FROM_OTF(obj_Z, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_A = PyArray_FROM_OTF(obj_A, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_V = PyArray_FROM_OTF(obj_V, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_F = PyArray_FROM_OTF(obj_F, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_D = PyArray_FROM_OTF(obj_D, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_S = PyArray_FROM_OTF(obj_S, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_Z = PyArray_FROM_OTF(obj_Z, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -281,15 +281,15 @@ static PyObject *libspleaf_spleaf_dotL(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_y = PyArray_FROM_OTF(obj_y, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_f = PyArray_FROM_OTF(obj_f, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_y = PyArray_FROM_OTF(obj_y, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_f = PyArray_FROM_OTF(obj_f, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -383,15 +383,15 @@ static PyObject *libspleaf_spleaf_solveL(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_y = PyArray_FROM_OTF(obj_y, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_f = PyArray_FROM_OTF(obj_f, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_y = PyArray_FROM_OTF(obj_y, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_f = PyArray_FROM_OTF(obj_f, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -485,15 +485,15 @@ static PyObject *libspleaf_spleaf_dotLT(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_y = PyArray_FROM_OTF(obj_y, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_g = PyArray_FROM_OTF(obj_g, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_y = PyArray_FROM_OTF(obj_y, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_g = PyArray_FROM_OTF(obj_g, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -587,15 +587,15 @@ static PyObject *libspleaf_spleaf_solveLT(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_y = PyArray_FROM_OTF(obj_y, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_g = PyArray_FROM_OTF(obj_g, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_y = PyArray_FROM_OTF(obj_y, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_g = PyArray_FROM_OTF(obj_g, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -709,25 +709,25 @@ static PyObject *libspleaf_spleaf_cholesky_back(PyObject *self, PyObject *args) 
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_D = PyArray_FROM_OTF(obj_D, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_D = PyArray_FROM_OTF(obj_grad_D, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_Ucho = PyArray_FROM_OTF(obj_grad_Ucho, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_phicho = PyArray_FROM_OTF(obj_grad_phicho, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_A = PyArray_FROM_OTF(obj_grad_A, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_V = PyArray_FROM_OTF(obj_grad_V, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_F = PyArray_FROM_OTF(obj_grad_F, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_S = PyArray_FROM_OTF(obj_S, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_Z = PyArray_FROM_OTF(obj_Z, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_D = PyArray_FROM_OTF(obj_D, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_D = PyArray_FROM_OTF(obj_grad_D, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_Ucho = PyArray_FROM_OTF(obj_grad_Ucho, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_phicho = PyArray_FROM_OTF(obj_grad_phicho, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_A = PyArray_FROM_OTF(obj_grad_A, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_V = PyArray_FROM_OTF(obj_grad_V, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_F = PyArray_FROM_OTF(obj_grad_F, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_S = PyArray_FROM_OTF(obj_S, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_Z = PyArray_FROM_OTF(obj_Z, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -881,20 +881,20 @@ static PyObject *libspleaf_spleaf_dotL_back(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_y = PyArray_FROM_OTF(obj_grad_y, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_x = PyArray_FROM_OTF(obj_grad_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_f = PyArray_FROM_OTF(obj_f, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_y = PyArray_FROM_OTF(obj_grad_y, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_x = PyArray_FROM_OTF(obj_grad_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_f = PyArray_FROM_OTF(obj_f, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -1023,20 +1023,20 @@ static PyObject *libspleaf_spleaf_solveL_back(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_x = PyArray_FROM_OTF(obj_grad_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_y = PyArray_FROM_OTF(obj_grad_y, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_f = PyArray_FROM_OTF(obj_f, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_x = PyArray_FROM_OTF(obj_grad_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_y = PyArray_FROM_OTF(obj_grad_y, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_f = PyArray_FROM_OTF(obj_f, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -1165,20 +1165,20 @@ static PyObject *libspleaf_spleaf_dotLT_back(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_y = PyArray_FROM_OTF(obj_grad_y, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_x = PyArray_FROM_OTF(obj_grad_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_g = PyArray_FROM_OTF(obj_g, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_y = PyArray_FROM_OTF(obj_grad_y, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_x = PyArray_FROM_OTF(obj_grad_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_g = PyArray_FROM_OTF(obj_g, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
@@ -1307,20 +1307,20 @@ static PyObject *libspleaf_spleaf_solveLT_back(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
-  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_IN_ARRAY);
-  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_x = PyArray_FROM_OTF(obj_grad_x, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_grad_y = PyArray_FROM_OTF(obj_grad_y, NPY_DOUBLE, NPY_IN_ARRAY);
-  PyObject *arr_g = PyArray_FROM_OTF(obj_g, NPY_DOUBLE, NPY_IN_ARRAY);
+  PyObject *arr_offsetrow = PyArray_FROM_OTF(obj_offsetrow, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_b = PyArray_FROM_OTF(obj_b, NPY_LONG, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_U = PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_W = PyArray_FROM_OTF(obj_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_phi = PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_G = PyArray_FROM_OTF(obj_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_x = PyArray_FROM_OTF(obj_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_x = PyArray_FROM_OTF(obj_grad_x, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_U = PyArray_FROM_OTF(obj_grad_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_W = PyArray_FROM_OTF(obj_grad_W, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_phi = PyArray_FROM_OTF(obj_grad_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_G = PyArray_FROM_OTF(obj_grad_G, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_grad_y = PyArray_FROM_OTF(obj_grad_y, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+  PyObject *arr_g = PyArray_FROM_OTF(obj_g, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
 
   // Generate exception in case of failure
   if (
