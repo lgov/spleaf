@@ -220,7 +220,7 @@ class Cov(Spleaf):
     b = np.zeros(n, dtype=int)
     if calib_file is None:
       F = np.empty(0)
-      self._dFdvar_calib_inst = np.empty((0,0))
+      self._dFdvar_calib_inst = np.empty((self.ninst,0))
     elif not isinstance(calib_file, np.ndarray):
       raise Exception('Cov: calib_file is not an array.')
     elif calib_file.size != n:
