@@ -42,6 +42,7 @@ Generate documentation:
     - conda env create -f spleaf_env.yml
     - conda activate spleaf
   script:
+    - pip install dist/*.tar.gz
     - cd doc
     - make html
   after_script:
