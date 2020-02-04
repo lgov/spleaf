@@ -9,11 +9,13 @@ Build distribution:
   stage: build
   before_script:
     - export PATH=$PATH:/opt/anaconda3/bin/
+    - conda env create -f spleaf_env.yml
     - conda activate spleaf
   script:
     - python setup.py sdist
   after_script:
     - conda deactivate
+    - conda env remove -n spleaf
   artifacts:
     paths:
       - dist/*.tar.gz
@@ -23,6 +25,7 @@ Run test:
   stage: test
   before_script:
     - export PATH=$PATH:/opt/anaconda3/bin/
+    - conda env create -f spleaf_env.yml
     - conda activate spleaf
   script:
     - pip install dist/*.tar.gz
@@ -30,17 +33,20 @@ Run test:
     - python -m pytest
   after_script:
     - conda deactivate
+    - conda env remove -n spleaf
 
 Generate documentation:
   stage: documentation
   before_script:
     - export PATH=$PATH:/opt/anaconda3/bin/
+    - conda env create -f spleaf_env.yml
     - conda activate spleaf
   script:
     - cd doc
     - make html
   after_script:
     - conda deactivate
+    - conda env remove -n spleaf
   artifacts:
     paths:
       - doc/build/html

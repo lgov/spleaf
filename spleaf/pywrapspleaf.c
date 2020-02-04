@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with spleaf.  If not, see <http://www.gnu.org/licenses/>.
 
-#define NPY_NO_DEPRECATED_API NPY_1_16_API_VERSION
+#define NPY_NO_DEPRECATED_API NPY_1_18_API_VERSION
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
