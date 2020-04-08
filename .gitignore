@@ -3,3 +3,4 @@ dist/*
 doc/build/*
 doc/source/classes/*
 */__pycache__/*
+other/*

@@ -694,3 +694,221 @@ void spleaf_solveLT_back(
     grad_y[n-1] -= G[offsetrow[n-1]+j] * grad_y[j];
   }
 }
+
+void spleaf_expandsep(
+  // Shapes
+  long n, long r,
+  // Input
+  double *U, double *V, double *phi,
+  // Output
+  double *K)
+{
+  // Expand the semiseparable part of a symmetric S+LEAF matrix
+  // as a full (n x n) matrix.
+  // This is useful for the conditional covariance computation.
+
+  long i, j, s;
+  double f[r];
+
+  for (i=0; i<n; i++) {
+    K[(n+1)*i] = 0.0;
+    for (s=0; s<r; s++) {
+      K[(n+1)*i] += U[r*i+s] * V[r*i+s];
+      f[s] = 1.0;
+    }
+    for (j=i-1; j>=0; j--) {
+      K[n*i+j] = 0.0;
+      for (s=0; s<r; s++) {
+        f[s] *= phi[r*j+s];
+        K[n*i+j] += f[s] * U[r*i+s] * V[r*j+s];
+      }
+      K[n*j+i] = K[n*i+j];
+    }
+  }
+}
+
+void spleaf_expandsepmixt(
+  // Shapes
+  long n1, long n2, long r,
+  // Input
+  double *U1, double *V1, double *phi1,
+  double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
+  // Output
+  double *Km)
+{
+  // Expand the semiseparable mixt part of a symmetric S+LEAF matrix
+  // as a full (n2 x n1) matrix.
+  // This is useful for the conditional covariance computation.
+
+  long i1, i2, j1, j2, s;
+  double f[r];
+
+  // Forward part (U2 V1^T)
+  j2 = 0;
+  for (j1=0; j1<=ref2left[n2-1]; j1++) {
+    for (s=0; s<r; s++) {
+      f[s] = V1[r*j1+s];
+    }
+    while ((j2<n2) && (ref2left[j2]<j1)) {
+      j2++;
+    }
+    i1 = j1;
+    i2 = j2;
+    while (i2<n2) {
+      while (i1<ref2left[i2]) {
+        for (s=0; s<r; s++) {
+          f[s] *= phi1[r*i1+s];
+        }
+        i1++;
+      }
+      while ((i2<n2) && (ref2left[i2]==i1)) {
+        Km[n1*i2+j1] = 0.0;
+        for (s=0; s<r; s++) {
+          Km[n1*i2+j1] += U2[r*i2+s] * phi2left[r*i2+s] * f[s];
+        }
+        i2++;
+      }
+    }
+  }
+  // Backward part (V2 U1^T)
+  j2 = n2-1;
+  for (j1=n1-1; j1>ref2left[0]; j1--) {
+    for (s=0; s<r; s++) {
+      f[s] = U1[r*j1+s];
+    }
+    while ((j2>=0) && (ref2left[j2]>=j1)) {
+      j2--;
+    }
+    i1 = j1-1;
+    i2 = j2;
+    while (i2>=0) {
+      while (i1>ref2left[i2]) {
+        for (s=0; s<r; s++) {
+          f[s] *= phi1[r*i1+s];
+        }
+        i1--;
+      }
+      while ((i2>=0) && (ref2left[i2]==i1)) {
+        Km[n1*i2+j1] = 0.0;
+        for (s=0; s<r; s++) {
+          Km[n1*i2+j1] += V2[r*i2+s] * phi2right[r*i2+s] * f[s];
+        }
+        i2--;
+      }
+    }
+  }
+}
+
+void spleaf_dotsep(
+  // Shapes
+  long n, long r,
+  // Input
+  double *U, double *V, double *phi,
+  double *x,
+  // Output
+  double *y)
+{
+  // Compute y = K x,
+  // where K is the (n x n) semiseparable part of a symmetric S+LEAF matrix.
+  // This is useful for the conditional mean computation.
+  long i, s;
+  double f[r];
+
+  // Forward part (V U^T) + diagonal
+  // Initialize f and y[0]
+  y[0] = 0.0;
+  for (s=0; s<r; s++) {
+    f[s] = V[s] * x[0];
+    y[0] += U[s] * f[s];
+  }
+  for (i=1; i<n; i++) {
+    y[i] = 0.0;
+    for (s=0; s<r; s++) {
+      // Update f
+      f[s] = phi[r*(i-1)+s] * f[s] + V[r*i+s] * x[i];
+      y[i] += U[r*i+s] * f[s];
+    }
+  }
+  // Backward part (U V^T)
+  // Initialize f
+  for (s=0; s<r; s++) {
+    f[s] = 0.0;
+  }
+  for (i=n-2; i>=0; i--) {
+    for (s=0; s<r; s++) {
+      // Update f
+      f[s] = phi[r*i+s] * (f[s] + U[r*(i+1)+s] * x[i+1]);
+      y[i] += V[r*i+s] * f[s];
+    }
+  }
+}
+
+void spleaf_dotsepmixt(
+  // Shapes
+  long n1, long n2, long r,
+  // Input
+  double *U1, double *V1, double *phi1,
+  double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
+  double *x,
+  // Output
+  double *y)
+{
+  // Compute y = Km x,
+  // where Km is the (n2 x n1) semiseparable mixt part
+  // of a symmetric S+LEAF matrix.
+  // This is useful for the conditional mean computation.
+
+  long i, j, s;
+  double f[r];
+
+  // Forward part (U2 V1^T)
+  i = 0;
+  while ((i<n2) && (ref2left[i] == -1)) {
+    y[i] = 0.0;
+    i++;
+  }
+  // Initialize f
+  for (s=0; s<r; s++) {
+    f[s] = V1[s] * x[0];
+  }
+  j = 0;
+  while (i<n2) {
+    // Update f
+    while (j<ref2left[i]) {
+      for (s=0; s<r; s++) {
+        f[s] = phi1[r*j+s] * f[s] + V1[r*(j+1)+s] * x[j+1];
+      }
+      j++;
+    }
+    // Compute forward part of y[i]
+    y[i] = 0.0;
+    for (s=0; s<r; s++) {
+      y[i] += U2[r*i+s] * phi2left[r*i+s] * f[s];
+    }
+    i++;
+  }
+  // Backward part (V2 U1^T)
+  i = n2-1;
+  while ((i>=0) && (ref2left[i] == n1-1)) {
+    i--;
+  }
+  // Initialize f
+  for (s=0; s<r; s++) {
+    f[s] = U1[r*(n1-1)+s] * x[n1-1];
+  }
+  j = n1-2;
+  while (i>=0) {
+    // Update f
+    while (j>ref2left[i]) {
+      for (s=0; s<r; s++) {
+        f[s] = phi1[r*j+s] * f[s] + U1[r*j+s] * x[j];
+      }
+      j--;
+    }
+    // Compute backward part of y[i]
+    for (s=0; s<r; s++) {
+      y[i] += V2[r*i+s] * phi2right[r*i+s] * f[s];
+    }
+    i--;
+  }
+}

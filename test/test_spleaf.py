@@ -322,3 +322,76 @@ def test_chi2_grad():
 
 def test_loglike_grad():
   _test_method_grad('loglike')
+
+def test_self_conditional():
+  C = _generate_random_C()
+  u = np.random.normal(size=C.n)
+  y = C.dotL(u*C.sqD())
+  mu = C.self_conditional(y)
+  muv, var = C.self_conditional(y, 'diag')
+  muc, cov = C.self_conditional(y, True)
+
+  C_full = C.expand()
+  A = np.sum(C.U*C.V,axis=1)
+  b = np.zeros(C.n, dtype=int)
+  offsetrow = np.cumsum(b-1) + 1
+  F = np.zeros(0)
+  K_full = Spleaf(A, C.U, C.V, C.phi, offsetrow, b, F).expand()
+  mu_full = K_full@np.linalg.solve(C_full, y)
+  cov_full = K_full - K_full@np.linalg.inv(C_full)@K_full
+
+  err = np.max(np.abs(mu-mu_full))
+  assert err < prec, ('conditional mean not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(muv-mu_full))
+  assert err < prec, ('conditional mean not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(muc-mu_full))
+  assert err < prec, ('conditional mean not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(var-np.diag(cov_full)))
+  assert err < prec, ('conditional var not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(cov-cov_full))
+  assert err < prec, ('conditional cov not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+def test_conditional():
+  C = _generate_random_C()
+  u = np.random.normal(size=C.n)
+  y = C.dotL(u*C.sqD())
+  mu_self, cov_self = C.self_conditional(y, True)
+  _, var_self = C.self_conditional(y, 'diag')
+
+  ref = np.arange(C.n)
+  phi2left = np.ones((C.n, C.r))
+  phi2right = np.concatenate((C.phi,np.ones((1,C.r))))
+
+  mu = C.conditional(y, C.U, C.V, C.phi, ref, phi2left, phi2right)
+  muv, var = C.conditional(y, C.U, C.V, C.phi, ref, phi2left, phi2right, 'diag')
+  muc, cov = C.conditional(y, C.U, C.V, C.phi, ref, phi2left, phi2right, True)
+
+  err = np.max(np.abs(mu-mu_self))
+  assert err < prec, ('conditional mean not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(muv-mu_self))
+  assert err < prec, ('conditional mean not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(muc-mu_self))
+  assert err < prec, ('conditional mean not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(var-var_self))
+  assert err < prec, ('conditional var not working'
+      ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(cov-cov_self))
+  assert err < prec, ('conditional cov not working'
+      ' at required precision ({} > {})').format(err, prec)
+

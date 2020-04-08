@@ -133,3 +133,39 @@ void spleaf_solveLT_back(
   double *grad_y,
   // Temporary variable
   double *g);
+
+void spleaf_expandsep(
+  // Shapes
+  long n, long r,
+  // Input
+  double *U, double *V, double *phi,
+  // Output
+  double *K);
+
+void spleaf_expandsepmixt(
+  // Shapes
+  long n1, long n2, long r,
+  // Input
+  double *U1, double *V1, double *phi1,
+  double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
+  // Output
+  double *Km);
+
+void spleaf_dotsep(
+  // Shapes
+  long n, long r,
+  // Input
+  double *U, double *V, double *phi,
+  double *x,
+  // Output
+  double *y);
+
+void spleaf_dotsepmixt(
+  // Shapes
+  long n1, long n2, long r,
+  // Input
+  double *U1, double *V1, double *phi1,
+  double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
+  double *x,
+  // Output
+  double *y);

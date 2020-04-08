@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from spleaf.rv import Cov
 
-prec = 1e-12
+prec = 5e-12
 n = 143
 ninst = 3
 calibmax = 12
@@ -345,3 +345,99 @@ def test_chi2_grad():
 
 def test_loglike_grad():
   _test_method_grad('loglike')
+
+def test_self_conditional():
+  C = _generate_random_C()
+  y = C.dotL(np.random.normal(0.0, C.sqD()))
+
+  mu = C.self_conditional(y)
+  muv, var = C.self_conditional(y, calc_cov='diag')
+  muc, cov = C.self_conditional(y, calc_cov=True)
+
+  invC_full = C.expandInv()
+  invCy_full = invC_full.dot(y)
+  K_full = np.array([
+    sum(C.var_exp[k]*np.exp(-C.lambda_exp[k]*np.abs(tk-C.t))
+      for k in range(C.nexp))
+    + sum(np.exp(-C.lambda_qper[k]*np.abs(tk-C.t))*(
+      C.var_cos_qper[k]*np.cos(C.nu_qper[k]*np.abs(tk-C.t))
+      + C.var_sin_qper[k]*np.sin(C.nu_qper[k]*np.abs(tk-C.t)))
+      for k in range(C.nqper))
+    for tk in C.t])
+  mu_full = K_full.T@invCy_full
+  cov_full = K_full - K_full.T@invC_full@K_full
+  var_full = np.diag(cov_full)
+
+  err = np.max(np.abs(mu-mu_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(muv-mu_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(muc-mu_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(var-var_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(cov-cov_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+def test_conditional():
+  C = _generate_random_C()
+  y = C.dotL(np.random.normal(0.0, C.sqD()))
+
+  n2 = 1000
+  Dt = C.t[-1] - C.t[0]
+  margin = Dt/10
+  t2 = np.linspace(C.t[0]-margin, C.t[-1]+margin, n2)
+  mu = C.conditional(y, t2)
+  muv, var = C.conditional(y, t2, calc_cov='diag')
+  muc, cov = C.conditional(y, t2, calc_cov=True)
+
+  invC_full = C.expandInv()
+  invCy_full = invC_full.dot(y)
+  Km_full = np.array([
+    sum(C.var_exp[k]*np.exp(-C.lambda_exp[k]*np.abs(tk-t2))
+      for k in range(C.nexp))
+    + sum(np.exp(-C.lambda_qper[k]*np.abs(tk-t2))*(
+      C.var_cos_qper[k]*np.cos(C.nu_qper[k]*np.abs(tk-t2))
+      + C.var_sin_qper[k]*np.sin(C.nu_qper[k]*np.abs(tk-t2)))
+      for k in range(C.nqper))
+    for tk in C.t])
+  K_full = np.array([
+    sum(C.var_exp[k]*np.exp(-C.lambda_exp[k]*np.abs(tk-t2))
+      for k in range(C.nexp))
+    + sum(np.exp(-C.lambda_qper[k]*np.abs(tk-t2))*(
+      C.var_cos_qper[k]*np.cos(C.nu_qper[k]*np.abs(tk-t2))
+      + C.var_sin_qper[k]*np.sin(C.nu_qper[k]*np.abs(tk-t2)))
+      for k in range(C.nqper))
+    for tk in t2])
+  mu_full = Km_full.T@invCy_full
+  cov_full = K_full - Km_full.T@invC_full@Km_full
+  var_full = np.diag(cov_full)
+
+  err = np.max(np.abs(mu-mu_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(muv-mu_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(muc-mu_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(var-var_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(cov-cov_full))
+  assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)

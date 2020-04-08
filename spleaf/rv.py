@@ -458,3 +458,76 @@ class Cov(Spleaf):
       grad_var_jitter_inst, grad_var_calib_inst,
       grad_var_exp, grad_lambda_exp,
       grad_var_cos_qper, grad_var_sin_qper, grad_lambda_qper, grad_nu_qper)
+
+  def conditional(self, y, t2, calc_cov=False):
+    r"""
+    Compute the conditional mean and covariance at new times
+    of the Gaussian process corresponding to the semiseparable part
+    of the covariance matrix, knowning the observed values :math:`y`.
+
+    Parameters
+    ----------
+    y : (n,) ndarray
+      The vector of observed values :math:`y`.
+    t2 : (n2,) ndarrays
+      The vector of new times.
+    calc_cov : False (default), True, or 'diag'
+      Whether to output only the conditional mean (False),
+      the mean and full covariance matrix (True),
+      or the mean and main diagonal of the covariance matrix ('diag').
+
+    Returns
+    -------
+    mu : (n2,) ndarray
+      The vector of conditional mean values.
+    cov : (n2, n2) ndarray
+      Full covariance matrix (if calc_cov is True).
+    var : (n2,) ndarray
+      Main diagonal of the covariance matrix (if calc_cov is 'diag').
+    """
+
+    n2 = t2.size
+    dt2 = t2[1:] - t2[:-1]
+    U2 = np.empty((n2,self.r))
+    V2 = np.empty((n2,self.r))
+    phi2 = np.empty((n2-1,self.r))
+    ref2left = np.empty(n2,dtype=int)
+    phi2left = np.empty((n2,self.r))
+    phi2right = np.empty((n2,self.r))
+
+    U2[:,:self.nexp] = self.var_exp
+    V2[:,:self.nexp] = 1.0
+    for k in range(self.nexp):
+      phi2[:,k] = np.exp(-self.lambda_exp[k]*dt2)
+    for k in range(self.nqper):
+      cnut = np.cos(self.nu_qper[k]*t2)
+      snut = np.sin(self.nu_qper[k]*t2)
+      U2[:,self.nexp+k] = self.var_cos_qper[k]*cnut + self.var_sin_qper[k]*snut
+      U2[:,k-self.nqper] = self.var_cos_qper[k]*snut - self.var_sin_qper[k]*cnut
+      V2[:,self.nexp+k] = cnut
+      V2[:,k-self.nqper] = snut
+      phi2[:,self.nexp+k] = np.exp(-self.lambda_qper[k]*dt2)
+      phi2[:,k-self.nqper] = phi2[:,self.nexp+k]
+
+    i2 = 0
+    while i2 < n2 and t2[i2] < self.t[0]:
+      ref2left[i2] = -1
+      phi2right[i2,:self.nexp] = np.exp(-self.lambda_exp*(self.t[0] - t2[i2]))
+      phi2right[i2,self.nexp:self.nexp+self.nqper] = np.exp(-self.lambda_qper*(self.t[0] - t2[i2]))
+      phi2right[i2,self.nexp+self.nqper:] = phi2right[i2,self.nexp:self.nexp+self.nqper]
+      i2 += 1
+    i1 = 1
+    while i2 < n2:
+      while i1 < self.n and self.t[i1] < t2[i2]:
+        i1 += 1
+      ref2left[i2] = i1-1
+      phi2left[i2,:self.nexp] = np.exp(-self.lambda_exp*(t2[i2]-self.t[i1-1]))
+      phi2left[i2,self.nexp:self.nexp+self.nqper] = np.exp(-self.lambda_qper*(t2[i2]-self.t[i1-1]))
+      phi2left[i2,self.nexp+self.nqper:] = phi2left[i2,self.nexp:self.nexp+self.nqper]
+      if i1 < self.n:
+        phi2right[i2,:self.nexp] = np.exp(-self.lambda_exp*(self.t[i1] - t2[i2]))
+        phi2right[i2,self.nexp:self.nexp+self.nqper] = np.exp(-self.lambda_qper*(self.t[i1] - t2[i2]))
+        phi2right[i2,self.nexp+self.nqper:] = phi2right[i2,self.nexp:self.nexp+self.nqper]
+      i2 += 1
+
+    return(super().conditional(y, U2, V2, phi2, ref2left, phi2left, phi2right, calc_cov))

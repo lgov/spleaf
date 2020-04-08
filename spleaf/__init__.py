@@ -675,3 +675,123 @@ class Spleaf():
     grad_y = self.solveL_back(grad_x)
     self.cholesky_back()
     return(grad_y, *self.grad_param())
+
+  def self_conditional(self, y, calc_cov=False):
+    r"""
+    Compute the conditional mean and covariance
+    of the Gaussian process corresponding to the semiseparable part
+    of the covariance matrix, knowning the observed values :math:`y`.
+
+    Parameters
+    ----------
+    y : (n,) ndarray
+      The vector of observed values :math:`y`.
+    calc_cov : False (default), True, or 'diag'
+      Whether to output only the conditional mean (False),
+      the mean and full covariance matrix (True),
+      or the mean and main diagonal of the covariance matrix ('diag').
+
+    Returns
+    -------
+    mu : (n,) ndarray
+      The vector of conditional mean values.
+    cov : (n, n) ndarray
+      Full covariance matrix (if calc_cov is True).
+    var : (n,) ndarray
+      Main diagonal of the covariance matrix (if calc_cov is 'diag').
+    """
+
+    u = self.solveLT(self.solveL(y)/self.D)
+    y2 = np.empty(self.n)
+    libspleaf.spleaf_dotsep(
+      self.n, self.r,
+      self.U, self.V, self.phi,
+      u,
+      y2)
+
+    if not calc_cov:
+      return(y2)
+
+    K = np.empty((self.n,self.n))
+    libspleaf.spleaf_expandsep(
+      self.n, self.r,
+      self.U, self.V, self.phi,
+      K)
+    H = np.array([self.solveL(Kk)/self.sqD() for Kk in K])
+
+    if calc_cov=='diag':
+      return(y2, np.diag(K) - np.sum(H*H,axis=1))
+
+    return(y2, K - H@H.T)
+
+  def conditional(self, y,
+    U2, V2, phi2, ref2left, phi2left, phi2right,
+    calc_cov=False):
+    r"""
+    Compute the conditional mean and covariance at new abscissas
+    of the Gaussian process corresponding to the semiseparable part
+    of the covariance matrix, knowning the observed values :math:`y`.
+
+    Parameters
+    ----------
+    y : (n,) ndarray
+      The vector of observed values :math:`y`.
+    U2, V2 : (n2, r) ndarrays
+      Symmetric semiseparable part at new abscissas,
+      with preconditionning matrix `phi2`.
+    phi2 : (n2-1, r) ndarray
+      Preconditionning matrix for the semiseparable part at new abscissas.
+    ref2left : (n2,) ndarray
+      Indices of the closest original abscissas to the left of new abscissas.
+    phi2left : (n2, r) ndarray
+      Preconditionning matrix linking new abscissas
+      with their closest original abscissas to the left.
+    phi2right : (n2, r) ndarray
+      Preconditionning matrix linking new abscissas
+      with their closest original abscissas to the right.
+    calc_cov : False (default), True, or 'diag'
+      Whether to output only the conditional mean (False),
+      the mean and full covariance matrix (True),
+      or the mean and main diagonal of the covariance matrix ('diag').
+
+    Returns
+    -------
+    mu : (n2,) ndarray
+      The vector of conditional mean values.
+    cov : (n2, n2) ndarray
+      Full covariance matrix (if calc_cov is True).
+    var : (n2,) ndarray
+      Main diagonal of the covariance matrix (if calc_cov is 'diag').
+    """
+
+    u = self.solveLT(self.solveL(y)/self.D)
+    n2 = U2.shape[0]
+    y2 = np.empty(n2)
+    libspleaf.spleaf_dotsepmixt(
+      self.n, n2, self.r,
+      self.U, self.V, self.phi,
+      U2, V2, ref2left, phi2left, phi2right,
+      u,
+      y2)
+
+    if not calc_cov:
+      return(y2)
+
+    Km = np.empty((n2,self.n))
+    libspleaf.spleaf_expandsepmixt(
+      self.n, n2, self.r,
+      self.U, self.V, self.phi,
+      U2, V2, ref2left, phi2left, phi2right,
+      Km)
+    Hm = np.array([self.solveL(Kmk)/self.sqD() for Kmk in Km])
+
+    if calc_cov=='diag':
+      return(y2, np.sum(U2*V2,axis=1) - np.sum(Hm*Hm,axis=1))
+
+    K = np.empty((n2, n2))
+    libspleaf.spleaf_expandsep(
+      n2, self.r,
+      U2, V2, phi2,
+      K
+    )
+    return(y2, K - Hm@Hm.T)
