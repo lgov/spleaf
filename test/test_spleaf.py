@@ -30,8 +30,6 @@ def _generate_random_C(seed=0):
 def _generate_random_param(C, seed=1):
   np.random.seed(seed)
 
-  k = np.arange(n)
-
   U = np.random.uniform(0.5, 1.5, (n, r))
   V = np.random.uniform(0.5, 1.5, (n, r))
   log10phi = np.random.uniform(-4,0,(n-1,r))

@@ -12,17 +12,13 @@ nqper = 4
 delta = 1e-5
 
 def _generate_random_C(seed=0):
-
   np.random.seed(seed)
-
-  k = np.arange(n)
-
   t = np.cumsum(10**np.random.uniform(-2,2,n))
   var_photon = np.random.uniform(0.5, 1.5, n)
   var_jitter = np.random.uniform(0.5, 1.5)
   inst_id = np.random.randint(0,ninst,n)
   var_jitter_inst = np.random.uniform(0.5, 1.5, ninst)
-  calib_file = np.empty(n, dtype=str)
+  calib_file = np.empty(n, dtype=object)
   var_calib_meas = np.empty(n)
   lastfileinst = ["" for _ in range(ninst)]
   lastvarinst = [0 for _ in range(ninst)]
@@ -52,11 +48,7 @@ def _generate_random_C(seed=0):
     var_exp, lambda_exp, var_cos_qper, var_sin_qper, lambda_qper, nu_qper))
 
 def _generate_random_param(seed=1):
-
   np.random.seed(seed)
-
-  k = np.arange(n)
-
   var_jitter = np.random.uniform(0.5, 1.5)
   var_jitter_inst = np.random.uniform(0.5, 1.5, ninst)
   var_calib_inst = np.random.uniform(0.5, 1.5, ninst)
