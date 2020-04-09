@@ -484,6 +484,15 @@ class Cov(Spleaf):
       Full covariance matrix (if calc_cov is True).
     var : (n2,) ndarray
       Main diagonal of the covariance matrix (if calc_cov is 'diag').
+
+    Warnings
+    --------
+    While the computational cost of the conditional mean scales as
+    :math:`\mathcal{O}(n+n_2)`,
+    the computational cost of the variance scales as
+    :math:`\mathcal{O}(n n_2)`,
+    and the computational cost of the full covariance scales as
+    :math:`\mathcal{O}(n n_2^2)`.
     """
 
     n2 = t2.size
