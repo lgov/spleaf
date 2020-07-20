@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with spleaf.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <stdlib.h>
 #include <string.h>
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))

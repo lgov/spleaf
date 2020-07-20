@@ -333,8 +333,11 @@ void spleaf_cholesky_back(
   long r2 = r*r;
   double SU;
   double grad_SU, grad_GD;
-  double grad_S[r2], grad_Z[r];
+  double *grad_S, *grad_Z;
   double grad_tmp;
+
+  grad_S = (double *) malloc(r2*sizeof(double));
+  grad_Z = (double *) malloc(r*sizeof(double));
 
   // Copy grad_D -> grad_A, grad_Ucho -> grad_U, grad_W -> grad_V,
   // grad_phicho -> grad_phi, grad_G -> grad_F
@@ -465,6 +468,9 @@ void spleaf_cholesky_back(
     grad_V[s] /= D[0];
     grad_A[0] -= W[s] * grad_V[s];
   }
+
+  free(grad_S);
+  free(grad_Z);
 }
 
 void spleaf_dotL_back(
@@ -482,7 +488,9 @@ void spleaf_dotL_back(
   // Backward propagation of the gradient for spleaf_dotL.
 
   long i, j, s;
-  double grad_f[r];
+  double *grad_f;
+
+  grad_f = (double *) malloc(r*sizeof(double));
 
   // Copy grad_y -> grad_x
   memcpy(grad_x, grad_y, n*sizeof(double));
@@ -518,6 +526,8 @@ void spleaf_dotL_back(
       grad_x[i-1] += W[r*(i-1)+s] * grad_f[s];
     }
   }
+
+  free(grad_f);
 }
 
 void spleaf_solveL_back(
@@ -535,7 +545,9 @@ void spleaf_solveL_back(
   // Backward propagation of the gradient for spleaf_solveL.
 
   long i, j, s;
-  double grad_f[r];
+  double *grad_f;
+
+  grad_f = (double *) malloc(r*sizeof(double));
 
   // Copy grad_x -> grad_y
   memcpy(grad_y, grad_x, n*sizeof(double));
@@ -571,6 +583,8 @@ void spleaf_solveL_back(
       grad_y[i-1] += W[r*(i-1)+s] * grad_f[s];
     }
   }
+
+  free(grad_f);
 }
 
 void spleaf_dotLT_back(
@@ -588,7 +602,9 @@ void spleaf_dotLT_back(
   // Backward propagation of the gradient for spleaf_dotLT.
 
   long i, j, s;
-  double grad_g[r];
+  double *grad_g;
+
+  grad_g = (double *) malloc(r*sizeof(double));
 
   // Copy grad_y -> grad_x
   memcpy(grad_x, grad_y, n*sizeof(double));
@@ -632,6 +648,8 @@ void spleaf_dotLT_back(
     grad_G[offsetrow[n-1]+j] += x[n-1] * grad_y[j];
     grad_x[n-1] += G[offsetrow[n-1]+j] * grad_y[j];
   }
+
+  free(grad_g);
 }
 
 void spleaf_solveLT_back(
@@ -649,7 +667,9 @@ void spleaf_solveLT_back(
   // Backward propagation of the gradient for spleaf_solveLT.
 
   long i, j, s;
-  double grad_g[r];
+  double *grad_g;
+
+  grad_g = (double *) malloc(r*sizeof(double));
 
   // Copy grad_x -> grad_y
   memcpy(grad_y, grad_x, n*sizeof(double));
@@ -693,6 +713,8 @@ void spleaf_solveLT_back(
     grad_G[offsetrow[n-1]+j] -= x[n-1] * grad_y[j];
     grad_y[n-1] -= G[offsetrow[n-1]+j] * grad_y[j];
   }
+
+  free(grad_g);
 }
 
 void spleaf_expandsep(
@@ -708,7 +730,9 @@ void spleaf_expandsep(
   // This is useful for the conditional covariance computation.
 
   long i, j, s;
-  double f[r];
+  double *f;
+
+  f = (double *) malloc(r*sizeof(double));
 
   for (i=0; i<n; i++) {
     K[(n+1)*i] = 0.0;
@@ -725,6 +749,8 @@ void spleaf_expandsep(
       K[n*j+i] = K[n*i+j];
     }
   }
+
+  free(f);
 }
 
 void spleaf_expandsepmixt(
@@ -741,7 +767,9 @@ void spleaf_expandsepmixt(
   // This is useful for the conditional covariance computation.
 
   long i1, i2, j1, j2, s;
-  double f[r];
+  double *f;
+
+  f = (double *) malloc(r*sizeof(double));
 
   // Forward part (U2 V1^T)
   j2 = 0;
@@ -797,6 +825,8 @@ void spleaf_expandsepmixt(
       }
     }
   }
+
+  free(f);
 }
 
 void spleaf_dotsep(
@@ -812,7 +842,9 @@ void spleaf_dotsep(
   // where K is the (n x n) semiseparable part of a symmetric S+LEAF matrix.
   // This is useful for the conditional mean computation.
   long i, s;
-  double f[r];
+  double *f;
+
+  f = (double *) malloc(r*sizeof(double));
 
   // Forward part (V U^T) + diagonal
   // Initialize f and y[0]
@@ -841,6 +873,8 @@ void spleaf_dotsep(
       y[i] += V[r*i+s] * f[s];
     }
   }
+
+  free(f);
 }
 
 void spleaf_dotsepmixt(
@@ -859,7 +893,9 @@ void spleaf_dotsepmixt(
   // This is useful for the conditional mean computation.
 
   long i, j, s;
-  double f[r];
+  double *f;
+
+  f = (double *) malloc(r*sizeof(double));
 
   // Forward part (U2 V1^T)
   i = 0;
@@ -911,4 +947,6 @@ void spleaf_dotsepmixt(
     }
     i--;
   }
+
+  free(f);
 }
