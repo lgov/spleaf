@@ -266,6 +266,120 @@ class Cov(Spleaf):
 
     return(super().conditional(y, U2, V2, phi2, ref2left, phi2left, phi2right, calc_cov))
 
+  def self_conditional_derivative(self, y, calc_cov=False):
+    r"""
+    Conditional mean and covariance
+    of the derivative of the kernel part
+    knowning the observed values :math:`y`.
+
+    Parameters
+    ----------
+    y : (n,) ndarray
+      The vector of observed values :math:`y`.
+    calc_cov : False (default), True, or 'diag'
+      Whether to output only the derivative conditional mean (False),
+      the mean and full covariance matrix (True),
+      or the mean and main diagonal of the covariance matrix ('diag').
+
+    Returns
+    -------
+    mu : (n,) ndarray
+      The vector of derivative conditional mean values.
+    cov : (n, n) ndarray
+      Full covariance matrix (if calc_cov is True).
+    var : (n,) ndarray
+      Main diagonal of the covariance matrix (if calc_cov is 'diag').
+
+    Warnings
+    --------
+    This method should only be used with differentiable kernels.
+    The ExponentialKernel and QuasiperiodicKernel are
+    in the general case non-differentiable.
+    All other kernels are diffentiable.
+
+    While the computational cost of the derivative conditional mean scales as
+    :math:`\mathcal{O}(n)`,
+    the computational cost of the variance scales as
+    :math:`\mathcal{O}(n^2)`,
+    and the computational cost of the full covariance scales as
+    :math:`\mathcal{O}(n^3)`.
+    """
+
+    dU = np.empty((self.n,self.r))
+    if calc_cov:
+      d2U = np.empty((self.n,self.r))
+    else:
+      d2U = None
+
+    for key in self.kernel:
+      self.kernel[key]._deriv(dU, d2U)
+
+    return(super().self_conditional_derivative(y, dU, d2U, calc_cov))
+
+  def conditional_derivative(self, y, t2, calc_cov=False):
+    r"""
+    Conditional mean and covariance
+    of the derivative of the kernel part at new times :math:`t_2`,
+    knowning the observed values :math:`y`.
+
+    Parameters
+    ----------
+    y : (n,) ndarray
+      The vector of observed values :math:`y`.
+    t2 : (n2,) ndarrays
+      The vector of new times.
+    calc_cov : False (default), True, or 'diag'
+      Whether to output only the derivative conditional mean (False),
+      the mean and full covariance matrix (True),
+      or the mean and main diagonal of the covariance matrix ('diag').
+
+    Returns
+    -------
+    mu : (n2,) ndarray
+      The vector of derivative conditional mean values.
+    cov : (n2, n2) ndarray
+      Full covariance matrix (if calc_cov is True).
+    var : (n2,) ndarray
+      Main diagonal of the covariance matrix (if calc_cov is 'diag').
+
+    Warnings
+    --------
+    While the computational cost of the derivative conditional mean scales as
+    :math:`\mathcal{O}(n+n_2)`,
+    the computational cost of the variance scales as
+    :math:`\mathcal{O}(n n_2)`,
+    and the computational cost of the full covariance scales as
+    :math:`\mathcal{O}(n n_2^2)`.
+    """
+
+    n2 = t2.size
+    dt2 = t2[1:] - t2[:-1]
+    dU = np.empty((self.n,self.r))
+    dU2 = np.empty((n2,self.r))
+    V2 = np.empty((n2, self.r))
+    phi2 = np.empty((n2-1, self.r))
+    phi2left = np.empty((n2, self.r))
+    phi2right = np.empty((n2, self.r))
+
+    ref2left = np.searchsorted(self.t, t2) - 1
+    dt2left = t2 - self.t[ref2left]
+    dt2right = self.t[np.minimum(ref2left+1,self.n-1)] - t2
+    dt2left[ref2left==-1] = 0 # useless but avoid overflow warning
+    dt2right[ref2left==self.n-1] = 0 # useless but avoid overflow warning
+
+    if calc_cov:
+      d2U2 = np.empty((n2,self.r))
+    else:
+      d2U2 = None
+
+    for key in self.kernel:
+      self.kernel[key]._deriv(dU)
+      self.kernel[key]._deriv_t2(t2, dt2, dU2, V2, phi2,
+        ref2left, dt2left, dt2right, phi2left, phi2right,
+        d2U2)
+
+    return(super().conditional_derivative(y, dU, dU2, d2U2, V2, phi2, ref2left, phi2left, phi2right, calc_cov))
+
   def eval(self, dt):
     r"""
     Direct evaluation of the kernel part at lag :math:`\delta t`.

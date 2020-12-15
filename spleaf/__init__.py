@@ -813,3 +813,148 @@ class Spleaf():
       K
     )
     return(y2, K - Hm@Hm.T)
+
+  def self_conditional_derivative(self, y, dU, d2U, calc_cov=False):
+    r"""
+    Conditional mean and covariance
+    of the derivative of the Gaussian process corresponding to the semiseparable part
+    of the covariance matrix, knowning the observed values :math:`y`.
+
+    Parameters
+    ----------
+    y : (n,) ndarray
+      The vector of observed values :math:`y`.
+    dU, d2U : (n, r) ndarrays
+      Symmetric semiseparable part of the derivatives.
+    calc_cov : False (default), True, or 'diag'
+      Whether to output only the conditional mean (False),
+      the mean and full covariance matrix (True),
+      or the mean and main diagonal of the covariance matrix ('diag').
+
+    Returns
+    -------
+    mu : (n, ) ndarray
+      The vector of derivative conditional mean values.
+    cov : (n, n) ndarray
+      Full covariance matrix (if calc_cov is True).
+    var : (n,) ndarray
+      Main diagonal of the covariance matrix (if calc_cov is 'diag').
+
+    Warnings
+    --------
+    While the computational cost of the derivative conditional mean scales as
+    :math:`\mathcal{O}(n)`,
+    the computational cost of the variance scales as
+    :math:`\mathcal{O}(n^2)`,
+    and the computational cost of the full covariance scales as
+    :math:`\mathcal{O}(n^3)`.
+    """
+
+    u = self.solveLT(self.solveL(y)/self.D)
+    dy = np.empty(self.n)
+    libspleaf.spleaf_dotantisep(
+      self.n, self.r,
+      dU, self.V, self.phi,
+      u,
+      dy)
+
+    if not calc_cov:
+      return(dy)
+
+    dK = np.empty((self.n,self.n))
+    d2K = np.empty((self.n,self.n))
+    libspleaf.spleaf_expandantisep(
+      self.n, self.r,
+      dU, self.V, self.phi,
+      dK)
+    libspleaf.spleaf_expandsep(
+      self.n, self.r,
+      d2U, self.V, self.phi,
+      d2K)
+    H = np.array([self.solveL(dKk)/self.sqD() for dKk in dK])
+
+    if calc_cov=='diag':
+      return(dy, np.diag(d2K) - np.sum(H*H,axis=1))
+
+    return(dy, d2K - H@H.T)
+
+  def conditional_derivative(self, y,
+    dU, dU2, d2U2, V2, phi2, ref2left, phi2left, phi2right,
+    calc_cov=False):
+    r"""
+    Conditional mean and covariance at new abscissas
+    of the derivative of the Gaussian process corresponding to the semiseparable part
+    of the covariance matrix, knowning the observed values :math:`y`.
+
+    Parameters
+    ----------
+    y : (n,) ndarray
+      The vector of observed values :math:`y`.
+    dU2, d2U2, V2 : (n2, r) ndarrays
+      Symmetric semiseparable part at new abscissas,
+      with preconditionning matrix `phi2`.
+    phi2 : (n2-1, r) ndarray
+      Preconditionning matrix for the semiseparable part at new abscissas.
+    ref2left : (n2,) ndarray
+      Indices of the closest original abscissas to the left of new abscissas.
+    phi2left : (n2, r) ndarray
+      Preconditionning matrix linking new abscissas
+      with their closest original abscissas to the left.
+    phi2right : (n2, r) ndarray
+      Preconditionning matrix linking new abscissas
+      with their closest original abscissas to the right.
+    calc_cov : False (default), True, or 'diag'
+      Whether to output only the conditional mean (False),
+      the mean and full covariance matrix (True),
+      or the mean and main diagonal of the covariance matrix ('diag').
+
+    Returns
+    -------
+    mu : (n2,) ndarray
+      The vector of derivative conditional mean values.
+    cov : (n2, n2) ndarray
+      Full covariance matrix (if calc_cov is True).
+    var : (n2,) ndarray
+      Main diagonal of the covariance matrix (if calc_cov is 'diag').
+
+    Warnings
+    --------
+    While the computational cost of the derivative conditional mean scales as
+    :math:`\mathcal{O}(n+n_2)`,
+    the computational cost of the variance scales as
+    :math:`\mathcal{O}(n n_2)`,
+    and the computational cost of the full covariance scales as
+    :math:`\mathcal{O}(n n_2^2)`.
+    """
+
+    u = self.solveLT(self.solveL(y)/self.D)
+    n2 = dU2.shape[0]
+    y2 = np.empty(n2)
+    libspleaf.spleaf_dotsepmixt(
+      self.n, n2, self.r,
+      -dU, self.V, self.phi,
+      dU2, V2, ref2left, phi2left, phi2right,
+      u,
+      y2)
+
+    if not calc_cov:
+      return(y2)
+
+    dKm = np.empty((n2,self.n))
+    libspleaf.spleaf_expandsepmixt(
+      self.n, n2, self.r,
+      -dU, self.V, self.phi,
+      dU2, V2, ref2left, phi2left, phi2right,
+      dKm)
+    Hm = np.array([self.solveL(dKmk)/self.sqD() for dKmk in dKm])
+
+    if calc_cov=='diag':
+      return(y2, np.sum(d2U2*V2,axis=1) - np.sum(Hm*Hm,axis=1))
+
+    d2K = np.empty((n2, n2))
+    libspleaf.spleaf_expandsep(
+      n2, self.r,
+      d2U2, V2, phi2,
+      d2K
+    )
+    return(y2, d2K - Hm@Hm.T)

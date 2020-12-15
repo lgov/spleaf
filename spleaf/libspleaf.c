@@ -1,4 +1,4 @@
-// Copyright 2019 Jean-Baptiste Delisle
+// Copyright 2019-2020 Jean-Baptiste Delisle
 //
 // This file is part of spleaf.
 //
@@ -829,6 +829,41 @@ void spleaf_expandsepmixt(
   free(f);
 }
 
+void spleaf_expandantisep(
+  // Shapes
+  long n, long r,
+  // Input
+  double *U, double *V, double *phi,
+  // Output
+  double *K)
+{
+  // Expand the semiseparable part of an anit-symmetric S+LEAF matrix
+  // as a full (n x n) matrix.
+  // This is useful for the conditional derivative covariance computation.
+
+  long i, j, s;
+  double *f;
+
+  f = (double *) malloc(r*sizeof(double));
+
+  for (i=0; i<n; i++) {
+    K[(n+1)*i] = 0.0;
+    for (s=0; s<r; s++) {
+      f[s] = 1.0;
+    }
+    for (j=i-1; j>=0; j--) {
+      K[n*i+j] = 0.0;
+      for (s=0; s<r; s++) {
+        f[s] *= phi[r*j+s];
+        K[n*i+j] += f[s] * U[r*i+s] * V[r*j+s];
+      }
+      K[n*j+i] = -K[n*i+j];
+    }
+  }
+
+  free(f);
+}
+
 void spleaf_dotsep(
   // Shapes
   long n, long r,
@@ -841,12 +876,13 @@ void spleaf_dotsep(
   // Compute y = K x,
   // where K is the (n x n) semiseparable part of a symmetric S+LEAF matrix.
   // This is useful for the conditional mean computation.
+
   long i, s;
   double *f;
 
   f = (double *) malloc(r*sizeof(double));
 
-  // Forward part (V U^T) + diagonal
+  // Forward part (U V^T) + diagonal
   // Initialize f and y[0]
   y[0] = 0.0;
   for (s=0; s<r; s++) {
@@ -861,7 +897,7 @@ void spleaf_dotsep(
       y[i] += U[r*i+s] * f[s];
     }
   }
-  // Backward part (U V^T)
+  // Backward part (V U^T)
   // Initialize f
   for (s=0; s<r; s++) {
     f[s] = 0.0;
@@ -946,6 +982,54 @@ void spleaf_dotsepmixt(
       y[i] += V2[r*i+s] * phi2right[r*i+s] * f[s];
     }
     i--;
+  }
+
+  free(f);
+}
+
+void spleaf_dotantisep(
+  // Shapes
+  long n, long r,
+  // Input
+  double *U, double *V, double *phi,
+  double *x,
+  // Output
+  double *y)
+{
+  // Compute y = K x,
+  // where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF matrix.
+  // This is useful for the conditional derivative mean computation.
+
+  long i, s;
+  double *f;
+
+  f = (double *) malloc(r*sizeof(double));
+
+  // Forward part (U V^T)
+  // Initialize f and y[0]
+  y[0] = 0.0;
+  for (s=0; s<r; s++) {
+    f[s] = 0.0;
+  }
+  for (i=1; i<n; i++) {
+    y[i] = 0.0;
+    for (s=0; s<r; s++) {
+      // Update f
+      f[s] = phi[r*(i-1)+s] * (f[s] + V[r*(i-1)+s] * x[i-1]);
+      y[i] += U[r*i+s] * f[s];
+    }
+  }
+  // Backward part (-V U^T)
+  // Initialize f
+  for (s=0; s<r; s++) {
+    f[s] = 0.0;
+  }
+  for (i=n-2; i>=0; i--) {
+    for (s=0; s<r; s++) {
+      // Update f
+      f[s] = phi[r*i+s] * (f[s] + U[r*(i+1)+s] * x[i+1]);
+      y[i] -= V[r*i+s] * f[s];
+    }
   }
 
   free(f);

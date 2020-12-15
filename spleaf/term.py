@@ -92,6 +92,23 @@ class Kernel(Term):
 
     pass
 
+  def _deriv(self, dU, d2U=None):
+    r"""
+    Compute the S+LEAF representation of the derivative of the GP.
+    """
+
+    pass
+
+  def _deriv_t2(self, t2, dt2, dU2, V2, phi2,
+    ref2left, dt2left, dt2right, phi2left, phi2right,
+    d2U2=None):
+    r"""
+    Compute the S+LEAF representation of the derivative of the GP
+    for a new calendar t2.
+    """
+
+    pass
+
   def eval(self, dt):
     r"""
     Evaluate the kernel at lag dt.
@@ -325,6 +342,22 @@ class ExponentialKernel(Kernel):
     phi2left[:, self._offset] = np.exp(-self._la*dt2left)
     phi2right[:, self._offset] = np.exp(-self._la*dt2right)
 
+  def _deriv(self, dU, d2U=None):
+    dU[:, self._offset] = -self._la * self._a
+    if d2U is not None:
+      d2U[:, self._offset] = -self._la**2 * self._a
+
+  def _deriv_t2(self, t2, dt2, dU2, V2, phi2,
+    ref2left, dt2left, dt2right, phi2left, phi2right,
+    d2U2=None):
+    dU2[:, self._offset] = -self._la * self._a
+    V2[:, self._offset] = 1.0
+    phi2[:, self._offset] = np.exp(-self._la*dt2)
+    phi2left[:, self._offset] = np.exp(-self._la*dt2left)
+    phi2right[:, self._offset] = np.exp(-self._la*dt2right)
+    if d2U2 is not None:
+      d2U2[:, self._offset] = -self._la**2 * self._a
+
   def eval(self, dt):
     return(self._a*np.exp(-self._la*np.abs(dt)))
 
@@ -417,6 +450,37 @@ class QuasiperiodicKernel(Kernel):
     phi2[:, self._offset:self._offset+2] = np.exp(-self._la*dt2)[:, None]
     phi2left[:, self._offset:self._offset+2] = np.exp(-self._la*dt2left)[:, None]
     phi2right[:, self._offset:self._offset+2] = np.exp(-self._la*dt2right)[:, None]
+
+  def _deriv(self, dU, d2U=None):
+    da = -self._la*self._a + self._nu*self._b
+    db = -self._la*self._b - self._nu*self._a
+    dU[:, self._offset] = da * self._cnut + db * self._snut
+    dU[:, self._offset+1] = da * self._snut - db * self._cnut
+    if d2U is not None:
+      d2a = (self._nu**2-self._la**2)*self._a + 2*self._la*self._nu*self._b
+      d2b = (self._nu**2-self._la**2)*self._b - 2*self._la*self._nu*self._a
+      d2U[:, self._offset] = d2a * self._cnut + d2b * self._snut
+      d2U[:, self._offset+1] = d2a * self._snut - d2b * self._cnut
+
+  def _deriv_t2(self, t2, dt2, dU2, V2, phi2,
+    ref2left, dt2left, dt2right, phi2left, phi2right,
+    d2U2=None):
+    da = -self._la*self._a + self._nu*self._b
+    db = -self._la*self._b - self._nu*self._a
+    cnut2 = np.cos(self._nu*t2)
+    snut2 = np.sin(self._nu*t2)
+    dU2[:, self._offset] = da*cnut2 + db*snut2
+    V2[:, self._offset] = cnut2
+    dU2[:, self._offset+1] = da*snut2 - db*cnut2
+    V2[:, self._offset+1] = snut2
+    phi2[:, self._offset:self._offset+2] = np.exp(-self._la*dt2)[:, None]
+    phi2left[:, self._offset:self._offset+2] = np.exp(-self._la*dt2left)[:, None]
+    phi2right[:, self._offset:self._offset+2] = np.exp(-self._la*dt2right)[:, None]
+    if d2U2 is not None:
+      d2a = (self._nu**2-self._la**2)*self._a + 2*self._la*self._nu*self._b
+      d2b = (self._nu**2-self._la**2)*self._b - 2*self._la*self._nu*self._a
+      d2U2[:, self._offset] = d2a*cnut2 + d2b*snut2
+      d2U2[:, self._offset+1] = d2a*snut2 - d2b*cnut2
 
   def eval(self, dt):
     adt = np.abs(dt)
@@ -613,6 +677,20 @@ class OSHOKernel(Kernel):
     self._exp2._compute_t2(t2, dt2, U2, V2, phi2,
       ref2left, dt2left, dt2right, phi2left, phi2right)
 
+  def _deriv(self, dU, d2U=None):
+    self._exp1._deriv(dU, d2U)
+    self._exp2._deriv(dU, d2U)
+
+  def _deriv_t2(self, t2, dt2, dU2, V2, phi2,
+    ref2left, dt2left, dt2right, phi2left, phi2right,
+    d2U2=None):
+    self._exp1._deriv_t2(t2, dt2, dU2, V2, phi2,
+      ref2left, dt2left, dt2right, phi2left, phi2right,
+      d2U2)
+    self._exp2._deriv_t2(t2, dt2, dU2, V2, phi2,
+      ref2left, dt2left, dt2right, phi2left, phi2right,
+      d2U2)
+
   def eval(self, dt):
     return(self._exp1.eval(dt) + self._exp2.eval(dt))
 
@@ -699,6 +777,24 @@ class SHOKernel(Kernel):
     else:
       self._osho._compute_t2(t2, dt2, U2, V2, phi2,
         ref2left, dt2left, dt2right, phi2left, phi2right)
+
+  def _deriv(self, dU, d2U=None):
+    if self._Q > 0.5:
+      self._usho._deriv(dU, d2U)
+    else:
+      self._osho._deriv(dU, d2U)
+
+  def _deriv_t2(self, t2, dt2, dU2, V2, phi2,
+    ref2left, dt2left, dt2right, phi2left, phi2right,
+    d2U2=None):
+    if self._Q > 0.5:
+      self._usho._deriv_t2(t2, dt2, dU2, V2, phi2,
+        ref2left, dt2left, dt2right, phi2left, phi2right,
+        d2U2)
+    else:
+      self._osho._deriv_t2(t2, dt2, dU2, V2, phi2,
+        ref2left, dt2left, dt2right, phi2left, phi2right,
+        d2U2)
 
   def eval(self, dt):
     if self._Q > 0.5:

@@ -16,7 +16,7 @@ nosho = 1
 nsho = 1
 delta = 1e-5
 
-def _generate_random_C(seed=0):
+def _generate_random_C(seed=0, deriv=False):
   np.random.seed(seed)
   t = np.cumsum(10**np.random.uniform(-2,2,n))
   sig_err = np.random.uniform(0.5, 1.5, n)
@@ -41,12 +41,13 @@ def _generate_random_C(seed=0):
       sig_calib_meas[k] = lastvarinst[i]
       nlastinst[i] += 1
   sig_calib_inst = np.random.uniform(0.5, 1.5, ninst)
-  a_exp = np.random.uniform(0.5, 1.5, nexp)
-  la_exp = 10**np.random.uniform(-2, 2, nexp)
-  a_qper = np.random.uniform(0.5, 1.5, nqper)
-  b_qper = np.random.uniform(0.05, 0.15, nqper)
-  la_qper = 10**np.random.uniform(-2, 2, nqper)
-  nu_qper = 10**np.random.uniform(-2, 2, nqper)
+  if not deriv:
+    a_exp = np.random.uniform(0.5, 1.5, nexp)
+    la_exp = 10**np.random.uniform(-2, 2, nexp)
+    a_qper = np.random.uniform(0.5, 1.5, nqper)
+    b_qper = np.random.uniform(0.05, 0.15, nqper)
+    la_qper = 10**np.random.uniform(-2, 2, nqper)
+    nu_qper = 10**np.random.uniform(-2, 2, nqper)
   sig_mat32 = np.random.uniform(0.5, 1.5, nmat32)
   rho_mat32 = 10**np.random.uniform(-2, 2, nmat32)
   sig_usho = np.random.uniform(0.5, 1.5, nusho)
@@ -59,18 +60,30 @@ def _generate_random_C(seed=0):
   P0_sho = 10**np.random.uniform(-2, 2, nsho)
   Q_sho = np.random.uniform(0.01, 2.0, nsho)
 
-  return(Cov(t,
-    err=Error(sig_err),
-    jit=Jitter(sig_jitter),
-    **{f'insjit_{k}':InstrumentJitter(inst_id==k, sig_jitter_inst[k]) for k in range(ninst)},
-    calerr=CalibrationError(calib_file, sig_calib_meas),
-    **{f'caljit_{k}':CalibrationJitter(inst_id==k, calib_file, sig_calib_inst[k]) for k in range(ninst)},
-    **{f'exp_{k}':ExponentialKernel(a_exp[k], la_exp[k]) for k in range(nexp)},
-    **{f'qper_{k}':QuasiperiodicKernel(a_qper[k], b_qper[k], la_qper[k], nu_qper[k]) for k in range(nqper)},
-    **{f'mat32_{k}':Matern32Kernel(sig_mat32[k], rho_mat32[k]) for k in range(nmat32)},
-    **{f'usho_{k}':USHOKernel(sig_usho[k], P0_usho[k], Q_usho[k]) for k in range(nusho)},
-    **{f'osho_{k}':OSHOKernel(sig_osho[k], P0_osho[k], Q_osho[k]) for k in range(nosho)},
-    **{f'sho_{k}':SHOKernel(sig_sho[k], P0_sho[k], Q_sho[k]) for k in range(nsho)}))
+  if deriv:
+    return(Cov(t,
+      err=Error(sig_err),
+      jit=Jitter(sig_jitter),
+      **{f'insjit_{k}':InstrumentJitter(inst_id==k, sig_jitter_inst[k]) for k in range(ninst)},
+      calerr=CalibrationError(calib_file, sig_calib_meas),
+      **{f'caljit_{k}':CalibrationJitter(inst_id==k, calib_file, sig_calib_inst[k]) for k in range(ninst)},
+      **{f'mat32_{k}':Matern32Kernel(sig_mat32[k], rho_mat32[k]) for k in range(nmat32)},
+      **{f'usho_{k}':USHOKernel(sig_usho[k], P0_usho[k], Q_usho[k]) for k in range(nusho)},
+      **{f'osho_{k}':OSHOKernel(sig_osho[k], P0_osho[k], Q_osho[k]) for k in range(nosho)},
+      **{f'sho_{k}':SHOKernel(sig_sho[k], P0_sho[k], Q_sho[k]) for k in range(nsho)}))
+  else:
+    return(Cov(t,
+      err=Error(sig_err),
+      jit=Jitter(sig_jitter),
+      **{f'insjit_{k}':InstrumentJitter(inst_id==k, sig_jitter_inst[k]) for k in range(ninst)},
+      calerr=CalibrationError(calib_file, sig_calib_meas),
+      **{f'caljit_{k}':CalibrationJitter(inst_id==k, calib_file, sig_calib_inst[k]) for k in range(ninst)},
+      **{f'exp_{k}':ExponentialKernel(a_exp[k], la_exp[k]) for k in range(nexp)},
+      **{f'qper_{k}':QuasiperiodicKernel(a_qper[k], b_qper[k], la_qper[k], nu_qper[k]) for k in range(nqper)},
+      **{f'mat32_{k}':Matern32Kernel(sig_mat32[k], rho_mat32[k]) for k in range(nmat32)},
+      **{f'usho_{k}':USHOKernel(sig_usho[k], P0_usho[k], Q_usho[k]) for k in range(nusho)},
+      **{f'osho_{k}':OSHOKernel(sig_osho[k], P0_osho[k], Q_osho[k]) for k in range(nosho)},
+      **{f'sho_{k}':SHOKernel(sig_sho[k], P0_sho[k], Q_sho[k]) for k in range(nsho)}))
 
 def _generate_random_param(seed=1):
   np.random.seed(seed)
@@ -453,4 +466,112 @@ def test_conditional():
 
   err = np.max(np.abs(cov-cov_full))
   assert err < prec, ('conditional not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+def test_self_conditional_derivative():
+  C = _generate_random_C(deriv=True)
+  y = C.dotL(np.random.normal(0.0, C.sqD()))
+
+  dmu = C.self_conditional_derivative(y)
+  dmuv, dvar = C.self_conditional_derivative(y, calc_cov='diag')
+  dmuc, dcov = C.self_conditional_derivative(y, calc_cov=True)
+
+  num_dmu = []
+  num_dcov = []
+  for dt in [delta, -2*delta]:
+    tfull = np.sort(np.concatenate((C.t, C.t+dt)))
+    mu, cov = C.conditional(y, tfull, calc_cov=True)
+    num_dmu.append((mu[1::2]-mu[::2])/abs(dt))
+    num_dcov.append((cov[1::2,1::2]+cov[::2,::2]-cov[1::2,::2]-cov[::2,1::2])/dt**2)
+
+  num_dmu_mean = (num_dmu[0]+num_dmu[1])/2
+  num_dmu_err = np.max(np.abs(num_dmu[0]-num_dmu[1]))
+
+  num_dcov_mean = (num_dcov[0]+num_dcov[1])/2
+  num_dcov_err = np.max(np.abs(num_dcov[0]-num_dcov[1]))
+
+  num_dvar_mean = num_dcov_mean.diagonal()
+  num_dvar_err = np.max(np.abs(num_dcov[0].diagonal()-num_dcov[1].diagonal()))
+
+  err = np.max(np.abs(dmu-num_dmu_mean))
+  err = max(0.0, err-num_dmu_err)
+  assert err < prec, ('self_conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(dmuv-num_dmu))
+  err = max(0.0, err-num_dmu_err)
+  assert err < prec, ('self_conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(dmuc-num_dmu))
+  err = max(0.0, err-num_dmu_err)
+  assert err < prec, ('self_conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(dvar-num_dvar_mean))
+  err = max(0.0, err-num_dvar_err)
+  assert err < prec, ('self_conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(dcov-num_dcov_mean))
+  err = max(0.0, err-num_dcov_err)
+  assert err < prec, ('self_conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+def test_conditional_derivative():
+  C = _generate_random_C(deriv=True)
+  y = C.dotL(np.random.normal(0.0, C.sqD()))
+
+  n2 = 1001
+  Dt = C.t[-1] - C.t[0]
+  margin = Dt/10
+  t2 = np.linspace(C.t[0]-margin, C.t[-1]+margin, n2)
+
+  dmu = C.conditional_derivative(y, t2)
+  dmuv, dvar = C.conditional_derivative(y, t2, calc_cov='diag')
+  dmuc, dcov = C.conditional_derivative(y, t2, calc_cov=True)
+
+  num_dmu = []
+  num_dcov = []
+  for dt in [delta, -2*delta]:
+    tfull = np.sort(np.concatenate((t2, t2+dt)))
+    mu, cov = C.conditional(y, tfull, calc_cov=True)
+    num_dmu.append((mu[1::2]-mu[::2])/abs(dt))
+    num_dcov.append((cov[1::2,1::2]+cov[::2,::2]-cov[1::2,::2]-cov[::2,1::2])/dt**2)
+
+  num_dmu_mean = (num_dmu[0]+num_dmu[1])/2
+  num_dmu_err = np.max(np.abs(num_dmu[0]-num_dmu[1]))
+
+  num_dcov_mean = (num_dcov[0]+num_dcov[1])/2
+  num_dcov_err = np.max(np.abs(num_dcov[0]-num_dcov[1]))
+
+  num_dvar_mean = num_dcov_mean.diagonal()
+  num_dvar_err = np.max(np.abs(num_dcov[0].diagonal()-num_dcov[1].diagonal()))
+
+  err = np.max(np.abs(dmu-num_dmu_mean))
+  print(err, num_dmu_err)
+  err = max(0.0, err-num_dmu_err)
+  assert err < prec, ('conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(dmuv-num_dmu))
+  err = max(0.0, err-num_dmu_err)
+  assert err < prec, ('conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(dmuc-num_dmu))
+  err = max(0.0, err-num_dmu_err)
+  assert err < prec, ('conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(dvar-num_dvar_mean))
+  print(err, num_dvar_err)
+  err = max(0.0, err-num_dvar_err)
+  assert err < prec, ('conditional_derivative not working'
+    ' at required precision ({} > {})').format(err, prec)
+
+  err = np.max(np.abs(dcov-num_dcov_mean))
+  print(err, num_dcov_err)
+  err = max(0.0, err-num_dcov_err)
+  assert err < prec, ('conditional_derivative not working'
     ' at required precision ({} > {})').format(err, prec)

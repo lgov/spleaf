@@ -1,4 +1,4 @@
-// Copyright 2019 Jean-Baptiste Delisle
+// Copyright 2019-2020 Jean-Baptiste Delisle
 //
 // This file is part of spleaf.
 //
@@ -152,6 +152,14 @@ void spleaf_expandsepmixt(
   // Output
   double *Km);
 
+void spleaf_expandantisep(
+  // Shapes
+  long n, long r,
+  // Input
+  double *U, double *V, double *phi,
+  // Output
+  double *K);
+
 void spleaf_dotsep(
   // Shapes
   long n, long r,
@@ -167,6 +175,15 @@ void spleaf_dotsepmixt(
   // Input
   double *U1, double *V1, double *phi1,
   double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
+  double *x,
+  // Output
+  double *y);
+
+void spleaf_dotantisep(
+  // Shapes
+  long n, long r,
+  // Input
+  double *U, double *V, double *phi,
   double *x,
   // Output
   double *y);
