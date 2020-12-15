@@ -1,25 +1,30 @@
 import pytest
 import numpy as np
-from spleaf.rv import Cov
+from spleaf.cov import Cov
+from spleaf.term import *
 
-prec = 5e-12
+prec = 1e-10
 n = 143
 ninst = 3
 calibmax = 12
 calibprob = 0.8
-nexp = 2
-nqper = 4
+nexp = 1
+nqper = 1
+nmat32 = 1
+nusho = 1
+nosho = 1
+nsho = 1
 delta = 1e-5
 
 def _generate_random_C(seed=0):
   np.random.seed(seed)
   t = np.cumsum(10**np.random.uniform(-2,2,n))
-  var_photon = np.random.uniform(0.5, 1.5, n)
-  var_jitter = np.random.uniform(0.5, 1.5)
+  sig_err = np.random.uniform(0.5, 1.5, n)
+  sig_jitter = np.random.uniform(0.5, 1.5)
   inst_id = np.random.randint(0,ninst,n)
-  var_jitter_inst = np.random.uniform(0.5, 1.5, ninst)
+  sig_jitter_inst = np.random.uniform(0.5, 1.5, ninst)
   calib_file = np.empty(n, dtype=object)
-  var_calib_meas = np.empty(n)
+  sig_calib_meas = np.empty(n)
   lastfileinst = ["" for _ in range(ninst)]
   lastvarinst = [0 for _ in range(ninst)]
   nlastinst = [0 for _ in range(ninst)]
@@ -27,40 +32,73 @@ def _generate_random_C(seed=0):
     i = inst_id[k]
     if lastfileinst[i] == "" or nlastinst[i] == calibmax or np.random.rand() > calibprob:
       calib_file[k] = '{}'.format(k)
-      var_calib_meas[k] = np.random.uniform(0.5, 1.5)
+      sig_calib_meas[k] = np.random.uniform(0.5, 1.5)
       lastfileinst[i] = calib_file[k]
-      lastvarinst[i] = var_calib_meas[k]
+      lastvarinst[i] = sig_calib_meas[k]
       nlastinst[i] = 1
     else:
       calib_file[k] = lastfileinst[i]
-      var_calib_meas[k] = lastvarinst[i]
+      sig_calib_meas[k] = lastvarinst[i]
       nlastinst[i] += 1
-  var_calib_inst = np.random.uniform(0.5, 1.5, ninst)
-  var_exp = np.random.uniform(0.5, 1.5, nexp)
-  lambda_exp = 10**np.random.uniform(-2, 2, nexp)
-  var_cos_qper = np.random.uniform(0.5, 1.5, nqper)
-  var_sin_qper = np.random.uniform(0.05, 0.15, nqper)
-  lambda_qper = 10**np.random.uniform(-2, 2, nqper)
+  sig_calib_inst = np.random.uniform(0.5, 1.5, ninst)
+  a_exp = np.random.uniform(0.5, 1.5, nexp)
+  la_exp = 10**np.random.uniform(-2, 2, nexp)
+  a_qper = np.random.uniform(0.5, 1.5, nqper)
+  b_qper = np.random.uniform(0.05, 0.15, nqper)
+  la_qper = 10**np.random.uniform(-2, 2, nqper)
   nu_qper = 10**np.random.uniform(-2, 2, nqper)
+  sig_mat32 = np.random.uniform(0.5, 1.5, nmat32)
+  rho_mat32 = 10**np.random.uniform(-2, 2, nmat32)
+  sig_usho = np.random.uniform(0.5, 1.5, nusho)
+  P0_usho = 10**np.random.uniform(-2, 2, nusho)
+  Q_usho = np.random.uniform(0.5, 20.0, nusho)
+  sig_osho = np.random.uniform(0.5, 1.5, nosho)
+  P0_osho = 10**np.random.uniform(-2, 2, nosho)
+  Q_osho = np.random.uniform(0.01, 0.5, nosho)
+  sig_sho = np.random.uniform(0.5, 1.5, nsho)
+  P0_sho = 10**np.random.uniform(-2, 2, nsho)
+  Q_sho = np.random.uniform(0.01, 2.0, nsho)
 
-  return(Cov(t, var_photon, var_jitter,
-    inst_id, var_jitter_inst, calib_file, var_calib_meas, var_calib_inst,
-    var_exp, lambda_exp, var_cos_qper, var_sin_qper, lambda_qper, nu_qper))
+  return(Cov(t,
+    err=Error(sig_err),
+    jit=Jitter(sig_jitter),
+    **{f'insjit_{k}':InstrumentJitter(inst_id==k, sig_jitter_inst[k]) for k in range(ninst)},
+    calerr=CalibrationError(calib_file, sig_calib_meas),
+    **{f'caljit_{k}':CalibrationJitter(inst_id==k, calib_file, sig_calib_inst[k]) for k in range(ninst)},
+    **{f'exp_{k}':ExponentialKernel(a_exp[k], la_exp[k]) for k in range(nexp)},
+    **{f'qper_{k}':QuasiperiodicKernel(a_qper[k], b_qper[k], la_qper[k], nu_qper[k]) for k in range(nqper)},
+    **{f'mat32_{k}':Matern32Kernel(sig_mat32[k], rho_mat32[k]) for k in range(nmat32)},
+    **{f'usho_{k}':USHOKernel(sig_usho[k], P0_usho[k], Q_usho[k]) for k in range(nusho)},
+    **{f'osho_{k}':OSHOKernel(sig_osho[k], P0_osho[k], Q_osho[k]) for k in range(nosho)},
+    **{f'sho_{k}':SHOKernel(sig_sho[k], P0_sho[k], Q_sho[k]) for k in range(nsho)}))
 
 def _generate_random_param(seed=1):
   np.random.seed(seed)
-  var_jitter = np.random.uniform(0.5, 1.5)
-  var_jitter_inst = np.random.uniform(0.5, 1.5, ninst)
-  var_calib_inst = np.random.uniform(0.5, 1.5, ninst)
-  var_exp = np.random.uniform(0.5, 1.5, nexp)
-  lambda_exp = 10**np.random.uniform(-2, 2, nexp)
-  var_cos_qper = np.random.uniform(0.5, 1.5, nqper)
-  var_sin_qper = np.random.uniform(0.05, 0.15, nqper)
-  lambda_qper = 10**np.random.uniform(-2, 2, nqper)
+  sig_jitter = np.random.uniform(0.5, 1.5, 1)
+  sig_jitter_inst = np.random.uniform(0.5, 1.5, ninst)
+  sig_calib_inst = np.random.uniform(0.5, 1.5, ninst)
+  a_exp = np.random.uniform(0.5, 1.5, nexp)
+  la_exp = 10**np.random.uniform(-2, 2, nexp)
+  a_qper = np.random.uniform(0.5, 1.5, nqper)
+  b_qper = np.random.uniform(0.05, 0.15, nqper)
+  la_qper = 10**np.random.uniform(-2, 2, nqper)
   nu_qper = 10**np.random.uniform(-2, 2, nqper)
+  sig_mat32 = np.random.uniform(0.5, 1.5, nmat32)
+  rho_mat32 = 10**np.random.uniform(-2, 2, nmat32)
+  sig_usho = np.random.uniform(0.5, 1.5, nusho)
+  P0_usho = 10**np.random.uniform(-2, 2, nusho)
+  Q_usho = np.random.uniform(0.5, 20.0, nusho)
+  sig_osho = np.random.uniform(0.5, 1.5, nosho)
+  P0_osho = 10**np.random.uniform(-2, 2, nosho)
+  Q_osho = np.random.uniform(0.01, 0.5, nosho)
+  sig_sho = np.random.uniform(0.5, 1.5, nsho)
+  P0_sho = 10**np.random.uniform(-2, 2, nsho)
+  Q_sho = np.random.uniform(0.01, 2.0, nsho)
 
-  return(var_jitter, var_jitter_inst, var_calib_inst,
-    var_exp, lambda_exp, var_cos_qper, var_sin_qper, lambda_qper, nu_qper)
+  return(sig_jitter, sig_jitter_inst, sig_calib_inst,
+    a_exp, la_exp, a_qper, b_qper, la_qper, nu_qper,
+    sig_mat32, rho_mat32, sig_usho, P0_usho, Q_usho,
+    sig_osho, P0_osho, Q_osho, sig_sho, P0_sho, Q_sho)
 
 def test_Cov():
   C = _generate_random_C()
@@ -74,14 +112,48 @@ def test_Cov():
   assert err < prec, ('Cholesky decomposition not working'
     ' at required precision ({} > {})').format(err, prec)
 
-def test_update_param():
+def test_set_param():
   C = _generate_random_C()
   param = list(_generate_random_param())
-  Cb = Cov(C.t, C.var_photon, param[0],
-    C.inst_id, param[1],
-    C.calib_file, C.var_calib_meas, param[2],
-    *param[3:])
-  C.update_param(*param)
+  Cb = Cov(C.t,
+    err=Error(C.term['err']._sig),
+    jit=Jitter(param[0][0]),
+    **{f'insjit_{k}':InstrumentJitter(C.term[f'insjit_{k}']._indices, param[1][k]) for k in range(ninst)},
+    calerr=CalibrationError(C.term['calerr']._calib_id, C.term['calerr']._sig),
+    **{f'caljit_{k}':CalibrationJitter(
+      C.term[f'insjit_{k}']._indices,
+      C.term['calerr']._calib_id,
+      param[2][k]) for k in range(ninst)},
+    **{f'exp_{k}':ExponentialKernel(param[3][k], param[4][k]) for k in range(nexp)},
+    **{f'qper_{k}':QuasiperiodicKernel(param[5][k], param[6][k], param[7][k], param[8][k]) for k in range(nqper)},
+    **{f'mat32_{k}':Matern32Kernel(param[9][k], param[10][k]) for k in range(nmat32)},
+    **{f'usho_{k}':USHOKernel(param[11][k], param[12][k], param[13][k]) for k in range(nusho)},
+    **{f'osho_{k}':OSHOKernel(param[14][k], param[15][k], param[16][k]) for k in range(nosho)},
+    **{f'sho_{k}':SHOKernel(param[17][k], param[18][k], param[19][k]) for k in range(nsho)})
+
+  C.set_param(
+    np.concatenate(param),
+    ['jit.sig']
+    + [f'insjit_{k}.sig' for k in range(ninst)]
+    + [f'caljit_{k}.sig' for k in range(ninst)]
+    + [f'exp_{k}.a' for k in range(nexp)]
+    + [f'exp_{k}.la' for k in range(nexp)]
+    + [f'qper_{k}.a' for k in range(nqper)]
+    + [f'qper_{k}.b' for k in range(nqper)]
+    + [f'qper_{k}.la' for k in range(nqper)]
+    + [f'qper_{k}.nu' for k in range(nqper)]
+    + [f'mat32_{k}.sig' for k in range(nmat32)]
+    + [f'mat32_{k}.rho' for k in range(nmat32)]
+    + [f'usho_{k}.sig' for k in range(nusho)]
+    + [f'usho_{k}.P0' for k in range(nusho)]
+    + [f'usho_{k}.Q' for k in range(nusho)]
+    + [f'osho_{k}.sig' for k in range(nosho)]
+    + [f'osho_{k}.P0' for k in range(nosho)]
+    + [f'osho_{k}.Q' for k in range(nosho)]
+    + [f'sho_{k}.sig' for k in range(nsho)]
+    + [f'sho_{k}.P0' for k in range(nsho)]
+    + [f'sho_{k}.Q' for k in range(nsho)]
+  )
 
   C_full = C.expand()
   Cb_full = Cb.expand()
@@ -92,7 +164,7 @@ def test_update_param():
   err = max(err, np.max(np.abs(L_full-Lb_full)))
   err = max(err, np.max(np.abs(C.D-Cb.D)))
 
-  assert err < prec, ('update_param not working'
+  assert err < prec, ('set_param not working'
     ' at required precision ({} > {})').format(err, prec)
 
 def test_inv():
@@ -223,35 +295,16 @@ def _test_method_back(method):
     ' at required precision ({} > {})').format(method, err, prec)
 
   # grad_param
-  for kparam, param in enumerate([
-    'var_jitter', 'var_jitter_inst', 'var_calib_inst',
-    'var_exp', 'lambda_exp',
-    'var_cos_qper', 'var_sin_qper', 'lambda_qper', 'nu_qper']):
+  for kparam, param in enumerate(C.param):
     grad_param_num = []
-    for dx in [delta, -delta]:
-      grad_param_num_dx = []
-      Cparam = getattr(C, param)
-      if isinstance(Cparam, np.ndarray):
-        Cparam = Cparam.copy()
-        for k in range(Cparam.size):
-          Cparam.flat[k] += dx
-          kwargs = {param: Cparam.copy()}
-          C.update_param(**kwargs)
-          db = getattr(C, method)(a) - b
-          grad_param_num_dx.append(db@grad_b/dx)
-          Cparam.flat[k] -= dx
-      else:
-        Cparam += dx
-        kwargs = {param: Cparam}
-        C.update_param(**kwargs)
-        db = getattr(C, method)(a) - b
-        grad_param_num_dx.append(db@grad_b/dx)
-        Cparam -= dx
-      kwargs = {param: Cparam}
-      C.update_param(**kwargs)
-      grad_param_num.append(grad_param_num_dx)
-    grad_param_num = np.array(grad_param_num)
-    err = np.max(np.abs(grad_param[kparam].flat-np.mean(grad_param_num, axis=0)))
+    Cparam = C.get_param(param)
+    deltaparam = delta*max(delta, abs(Cparam))
+    for dx in [deltaparam, -deltaparam]:
+      C.set_param([Cparam+dx], [param])
+      db = getattr(C, method)(a) - b
+      grad_param_num.append(db@grad_b/dx)
+    C.set_param([Cparam], [param])
+    err = np.max(np.abs(grad_param[kparam].flat-np.mean(grad_param_num)))
     num_err = np.max(np.abs(grad_param_num[1]-grad_param_num[0]))
     err = max(0.0, err-num_err)
     assert err < prec, ('{}_back ({}) not working'
@@ -278,7 +331,7 @@ def _test_method_grad(method):
 
   func = getattr(C, method)
   f = func(y)
-  f_grad = getattr(C, method+'_grad')()
+  f_grad_res, f_grad_param = getattr(C, method+'_grad')()
 
   # grad_y
   f_grad_num = []
@@ -291,42 +344,23 @@ def _test_method_grad(method):
       y[k] -= dx
     f_grad_num.append(f_grad_num_dx)
   f_grad_num = np.array(f_grad_num)
-  err = np.max(np.abs(f_grad[0]-np.mean(f_grad_num, axis=0)))
+  err = np.max(np.abs(f_grad_res-np.mean(f_grad_num, axis=0)))
   num_err = np.max(np.abs(f_grad_num[1]-f_grad_num[0]))
   err = max(0.0, err-num_err)
   assert err < prec, ('{}_grad (y) not working'
     ' at required precision ({} > {})').format(method, err, prec)
 
   # grad_param
-  for kparam, param in enumerate([
-    'var_jitter', 'var_jitter_inst', 'var_calib_inst',
-    'var_exp', 'lambda_exp',
-    'var_cos_qper', 'var_sin_qper', 'lambda_qper', 'nu_qper']):
+  for kparam, param in enumerate(C.param):
     f_grad_num = []
-    for dx in [delta, -delta]:
-      f_grad_num_dx = []
-      Cparam = getattr(C, param)
-      if isinstance(Cparam, np.ndarray):
-        Cparam = Cparam.copy()
-        for k in range(Cparam.size):
-          Cparam.flat[k] += dx
-          kwargs = {param: Cparam.copy()}
-          C.update_param(**kwargs)
-          df = getattr(C, method)(y) - f
-          f_grad_num_dx.append(df/dx)
-          Cparam.flat[k] -= dx
-      else:
-        Cparam += dx
-        kwargs = {param: Cparam}
-        C.update_param(**kwargs)
-        df = getattr(C, method)(y) - f
-        f_grad_num_dx.append(df/dx)
-        Cparam -= dx
-      kwargs = {param: Cparam}
-      C.update_param(**kwargs)
-      f_grad_num.append(f_grad_num_dx)
-    f_grad_num = np.array(f_grad_num)
-    err = np.max(np.abs(f_grad[kparam+1].flat-np.mean(f_grad_num, axis=0)))
+    Cparam = C.get_param(param)
+    deltaparam = delta*max(delta, abs(Cparam))
+    for dx in [deltaparam, -deltaparam]:
+      C.set_param([Cparam+dx], [param])
+      df = getattr(C, method)(y) - f
+      f_grad_num.append(df/dx)
+    C.set_param([Cparam], [param])
+    err = np.max(np.abs(f_grad_param[kparam].flat-np.mean(f_grad_num)))
     num_err = np.max(np.abs(f_grad_num[1]-f_grad_num[0]))
     err = max(0.0, err-num_err)
     assert err < prec, ('{}_grad ({}) not working'
@@ -348,16 +382,13 @@ def test_self_conditional():
 
   invC_full = C.expandInv()
   invCy_full = invC_full.dot(y)
-  K_full = np.array([
-    sum(C.var_exp[k]*np.exp(-C.lambda_exp[k]*np.abs(tk-C.t))
-      for k in range(C.nexp))
-    + sum(np.exp(-C.lambda_qper[k]*np.abs(tk-C.t))*(
-      C.var_cos_qper[k]*np.cos(C.nu_qper[k]*np.abs(tk-C.t))
-      + C.var_sin_qper[k]*np.sin(C.nu_qper[k]*np.abs(tk-C.t)))
-      for k in range(C.nqper))
-    for tk in C.t])
-  mu_full = K_full.T@invCy_full
-  cov_full = K_full - K_full.T@invC_full@K_full
+  term = {}
+  for key in C.kernel:
+    term[key] = C.kernel[key].__class__(*[getattr(C.kernel[key], f'_{param}') for param in C.kernel[key]._param])
+  K = Cov(C.t, **term)
+  K_full = K.expand()
+  mu_full = K_full@invCy_full
+  cov_full = K_full - K_full@invC_full@K_full
   var_full = np.diag(cov_full)
 
   err = np.max(np.abs(mu-mu_full))
@@ -384,7 +415,7 @@ def test_conditional():
   C = _generate_random_C()
   y = C.dotL(np.random.normal(0.0, C.sqD()))
 
-  n2 = 1000
+  n2 = 300
   Dt = C.t[-1] - C.t[0]
   margin = Dt/10
   t2 = np.linspace(C.t[0]-margin, C.t[-1]+margin, n2)
@@ -394,24 +425,14 @@ def test_conditional():
 
   invC_full = C.expandInv()
   invCy_full = invC_full.dot(y)
-  Km_full = np.array([
-    sum(C.var_exp[k]*np.exp(-C.lambda_exp[k]*np.abs(tk-t2))
-      for k in range(C.nexp))
-    + sum(np.exp(-C.lambda_qper[k]*np.abs(tk-t2))*(
-      C.var_cos_qper[k]*np.cos(C.nu_qper[k]*np.abs(tk-t2))
-      + C.var_sin_qper[k]*np.sin(C.nu_qper[k]*np.abs(tk-t2)))
-      for k in range(C.nqper))
-    for tk in C.t])
-  K_full = np.array([
-    sum(C.var_exp[k]*np.exp(-C.lambda_exp[k]*np.abs(tk-t2))
-      for k in range(C.nexp))
-    + sum(np.exp(-C.lambda_qper[k]*np.abs(tk-t2))*(
-      C.var_cos_qper[k]*np.cos(C.nu_qper[k]*np.abs(tk-t2))
-      + C.var_sin_qper[k]*np.sin(C.nu_qper[k]*np.abs(tk-t2)))
-      for k in range(C.nqper))
-    for tk in t2])
-  mu_full = Km_full.T@invCy_full
-  cov_full = K_full - Km_full.T@invC_full@Km_full
+  Km_full = C.eval(t2[:, None] - C.t[None, :])
+  term = {}
+  for key in C.kernel:
+    term[key] = C.kernel[key].__class__(*[getattr(C.kernel[key], f'_{param}') for param in C.kernel[key]._param])
+  K = Cov(t2, **term)
+  K_full = K.expand()
+  mu_full = Km_full@invCy_full
+  cov_full = K_full - Km_full@invC_full@Km_full.T
   var_full = np.diag(cov_full)
 
   err = np.max(np.abs(mu-mu_full))

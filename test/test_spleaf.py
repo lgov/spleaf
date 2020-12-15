@@ -54,11 +54,11 @@ def test_Spleaf():
   assert err < prec, ('Cholesky decomposition not working'
     ' at required precision ({} > {})').format(err, prec)
 
-def test_update_param():
+def test_set_param():
   C = _generate_random_C()
   A, U, V, phi, F = _generate_random_param(C)
   Cb = Spleaf(A, U, V, phi, C.offsetrow, C.b, F)
-  C.update_param(A, U, V, phi, F)
+  C.set_param(A, U, V, phi, F)
 
   C_full = C.expand()
   Cb_full = Cb.expand()
@@ -69,7 +69,7 @@ def test_update_param():
   err = max(err, np.max(np.abs(L_full-Lb_full)))
   err = max(err, np.max(np.abs(C.D-Cb.D)))
 
-  assert err < prec, ('update_param not working'
+  assert err < prec, ('set_param not working'
     ' at required precision ({} > {})').format(err, prec)
 
 def test_expandInv():
@@ -206,12 +206,12 @@ def _test_method_back(method):
       for k in range(Cparam.size):
         Cparam.flat[k] += dx
         kwargs[param] = Cparam.copy()
-        C.update_param(**kwargs)
+        C.set_param(**kwargs)
         db = getattr(C, method)(a) - b
         grad_param_num_dx.append(db@grad_b/dx)
         Cparam.flat[k] -= dx
       kwargs[param] = Cparam
-      C.update_param(**kwargs)
+      C.set_param(**kwargs)
       grad_param_num.append(grad_param_num_dx)
     grad_param_num = np.array(grad_param_num)
     err = np.max(np.abs(grad_param[kparam].flat-np.mean(grad_param_num, axis=0)))
@@ -272,7 +272,7 @@ def _test_method_grad(method):
 
   func = getattr(C, method)
   f = func(y)
-  f_grad = getattr(C, method+'_grad')()
+  f_grad_res, f_grad_param = getattr(C, method+'_grad')()
 
   # grad_y
   f_grad_num = []
@@ -285,7 +285,7 @@ def _test_method_grad(method):
       y[k] -= dx
     f_grad_num.append(f_grad_num_dx)
   f_grad_num = np.array(f_grad_num)
-  err = np.max(np.abs(f_grad[0]-np.mean(f_grad_num, axis=0)))
+  err = np.max(np.abs(f_grad_res-np.mean(f_grad_num, axis=0)))
   num_err = np.max(np.abs(f_grad_num[1]-f_grad_num[0]))
   err = max(0.0, err-num_err)
   assert err < prec, ('{}_grad (y) not working'
@@ -301,15 +301,15 @@ def _test_method_grad(method):
       for k in range(Cparam.size):
         Cparam.flat[k] += dx
         kwargs[param] = Cparam.copy()
-        C.update_param(**kwargs)
+        C.set_param(**kwargs)
         df = getattr(C, method)(y) - f
         f_grad_num_dx.append(df/dx)
         Cparam.flat[k] -= dx
       kwargs[param] = Cparam
-      C.update_param(**kwargs)
+      C.set_param(**kwargs)
       f_grad_num.append(f_grad_num_dx)
     f_grad_num = np.array(f_grad_num)
-    err = np.max(np.abs(f_grad[kparam+1].flat-np.mean(f_grad_num, axis=0)))
+    err = np.max(np.abs(f_grad_param[kparam].flat-np.mean(f_grad_num, axis=0)))
     num_err = np.max(np.abs(f_grad_num[1]-f_grad_num[0]))
     err = max(0.0, err-num_err)
     assert err < prec, ('{}_grad ({}) not working'

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019 Jean-Baptiste Delisle
+# Copyright 2019-2020 Jean-Baptiste Delisle
 #
 # This file is part of spleaf.
 #
@@ -154,7 +154,7 @@ class Spleaf():
     else:
       return(x)
 
-  def update_param(self, A, U, V, phi, F, copy=False):
+  def set_param(self, A, U, V, phi, F, copy=False):
     r"""
     Update the initial parameters (`A`, `U`, `V`, `phi`, `F`)
     and recompute the Cholesky decomposition of the matrix.
@@ -570,7 +570,7 @@ class Spleaf():
       self._g_solveLT)
     return(grad_y)
 
-  def grad_param(self):
+  def grad_param(self, *args, **kwargs):
     r"""
     Gradient of a function with respect to
     the initial parameters (`A`, `U`, `V`, `phi`, `F`),
@@ -632,7 +632,7 @@ class Spleaf():
     return(-0.5*(self.chi2(y) + self.logdet() +
       self.n*np.log(2.0*np.pi)))
 
-  def chi2_grad(self):
+  def chi2_grad(self, *args, **kwargs):
     r"""
     Compute the gradient of the :math:`\chi^2` (:func:`chi2`)
     with respect to the residuals and to the initial parameters
@@ -652,9 +652,9 @@ class Spleaf():
     self._grad_D = -xoD*xoD
     grad_y = self.solveL_back(grad_x)
     self.cholesky_back()
-    return(grad_y, *self.grad_param())
+    return(grad_y, self.grad_param(*args, **kwargs))
 
-  def loglike_grad(self):
+  def loglike_grad(self, *args, **kwargs):
     r"""
     Compute the gradient of the log-likelihood (:func:`loglike`)
     with respect to the residuals and to the initial parameters
@@ -674,7 +674,7 @@ class Spleaf():
     self._grad_D = 0.5*(xoD*xoD - 1.0/self.D)
     grad_y = self.solveL_back(grad_x)
     self.cholesky_back()
-    return(grad_y, *self.grad_param())
+    return(grad_y, self.grad_param(*args, **kwargs))
 
   def self_conditional(self, y, calc_cov=False):
     r"""
@@ -737,7 +737,7 @@ class Spleaf():
     U2, V2, phi2, ref2left, phi2left, phi2right,
     calc_cov=False):
     r"""
-    Compute the conditional mean and covariance at new abscissas
+    Conditional mean and covariance at new abscissas
     of the Gaussian process corresponding to the semiseparable part
     of the covariance matrix, knowning the observed values :math:`y`.
 
