@@ -295,7 +295,7 @@ class Cov(Spleaf):
     This method should only be used with differentiable kernels.
     The ExponentialKernel and QuasiperiodicKernel are
     in the general case non-differentiable.
-    All other kernels are diffentiable.
+    All other kernels are differentiable.
 
     While the computational cost of the derivative conditional mean scales as
     :math:`\mathcal{O}(n)`,
@@ -344,6 +344,11 @@ class Cov(Spleaf):
 
     Warnings
     --------
+    This method should only be used with differentiable kernels.
+    The ExponentialKernel and QuasiperiodicKernel are
+    in the general case non-differentiable.
+    All other kernels are differentiable.
+
     While the computational cost of the derivative conditional mean scales as
     :math:`\mathcal{O}(n+n_2)`,
     the computational cost of the variance scales as
