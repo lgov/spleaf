@@ -4,7 +4,7 @@ import spleaf
 
 # -- Project information -----------------------------------------------------
 project = 'S+LEAF'
-copyright = '2019, Jean-Baptiste Delisle'
+copyright = '2019-2020, Jean-Baptiste Delisle'
 author = 'Jean-Baptiste Delisle'
 
 # -- General configuration ---------------------------------------------------
@@ -21,7 +21,7 @@ autosummary_generate = True
 html_theme_path = ['_theme']
 html_theme = 'scipy'
 html_theme_options = {
-    "rootlinks": [],#[("http://www.unige.ch/", "UniGe")],
+    "rootlinks": [],
     'sidebar': 'right',
     "edit_link": False,
 }
