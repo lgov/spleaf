@@ -20,7 +20,8 @@
 __all__ = [
   'Error', 'Jitter', 'InstrumentJitter',
   'CalibrationError', 'CalibrationJitter',
-  'ExponentialKernel', 'QuasiperiodicKernel', 'Matern32Kernel',
+  'ExponentialKernel', 'QuasiperiodicKernel',
+  'Matern32Kernel', 'Matern52Kernel',
   'USHOKernel', 'OSHOKernel', 'SHOKernel']
 
 import numpy as np
@@ -526,6 +527,103 @@ class Matern32Kernel(QuasiperiodicKernel):
     grad['sig'] = 2*self._sig*(gradQP['a'] + gradQP['b']*self._la/self._eps)
     grad['rho'] = -np.sqrt(3)/self._rho**2 * (gradQP['la'] + gradQP['b']*self._a/self._eps)
     return(grad)
+
+class Matern52Kernel(Kernel):
+  r"""
+  Approximate Matérn 5/2 kernel.
+
+  This kernel approximates the Matérn 5/2 kernel:
+
+  .. math:: K(\delta t) = \sigma^2 \mathrm{e}^{-\sqrt{5}\frac{\delta t}{\rho}}
+    \left(1 + \sqrt{5}\frac{\delta t}{\rho} + \frac{5}{3}\left(\frac{\delta t}{\rho}\right)^2\right)
+
+  Parameters
+  ----------
+  sig : float
+    Amplitude (std).
+  rho : float
+    Scale.
+  eps : float
+    Precision of the approximation (0.01 by default).
+  """
+
+  def __init__(self, sig, rho, eps=0.01):
+    super().__init__()
+    self._sig = sig
+    self._rho = rho
+    self._eps = eps
+    aexp, a, b, la, nu = self._getcoefs()
+    self._exp = ExponentialKernel(aexp, la)
+    self._qp = QuasiperiodicKernel(a, b, la, nu)
+    self._r = 3
+    self._param = ['sig', 'rho']
+
+  def _getcoefs(self):
+    var = self._sig**2
+    la = np.sqrt(5)/self._rho
+    nu = self._eps
+    alpha = la/self._eps
+    b = var * alpha
+    a = -2/3 * alpha * b
+    aexp = var - a
+    return(aexp, a, b, la, nu)
+
+  def _link(self, cov, offset):
+    super()._link(cov, offset)
+    self._exp._link(cov, offset)
+    self._qp._link(cov, offset+1)
+
+  def _compute(self):
+    self._exp._compute()
+    self._qp._compute()
+
+  def _set_param(self, sig=None, rho=None):
+    if sig is not None:
+      self._sig = sig
+    if rho is not None:
+      self._rho = rho
+    aexp, a, b, la, nu = self._getcoefs()
+    self._exp._set_param(aexp, la)
+    self._qp._set_param(a, b, la, nu)
+
+  def _grad_param(self):
+    gradExp = self._exp._grad_param()
+    gradQP = self._qp._grad_param()
+    grad = {}
+    grad['sig'] = 2/self._sig*(
+      gradExp['a']*self._exp._a
+      + gradQP['a']*self._qp._a
+      + gradQP['b']*self._qp._b)
+    grad['rho'] = -1/self._rho * (
+      (gradExp['la'] + gradQP['la']) * self._exp._la
+      + 2*gradExp['a'] * (self._exp._a-self._sig**2)
+      + 2*gradQP['a'] * self._qp._a
+      + gradQP['b'] * self._qp._b)
+    return(grad)
+
+  def _compute_t2(self, t2, dt2, U2, V2, phi2,
+    ref2left, dt2left, dt2right, phi2left, phi2right):
+    self._exp._compute_t2(t2, dt2, U2, V2, phi2,
+      ref2left, dt2left, dt2right, phi2left, phi2right)
+    self._qp._compute_t2(t2, dt2, U2, V2, phi2,
+      ref2left, dt2left, dt2right, phi2left, phi2right)
+
+  def _deriv(self, dU, d2U=None):
+    self._exp._deriv(dU, d2U)
+    self._qp._deriv(dU, d2U)
+
+  def _deriv_t2(self, t2, dt2, dU2, V2, phi2,
+    ref2left, dt2left, dt2right, phi2left, phi2right,
+    d2U2=None):
+    self._exp._deriv_t2(t2, dt2, dU2, V2, phi2,
+      ref2left, dt2left, dt2right, phi2left, phi2right,
+      d2U2)
+    self._qp._deriv_t2(t2, dt2, dU2, V2, phi2,
+      ref2left, dt2left, dt2right, phi2left, phi2right,
+      d2U2)
+
+  def eval(self, dt):
+    return(self._exp.eval(dt) + self._qp.eval(dt))
 
 class USHOKernel(QuasiperiodicKernel):
   r"""

@@ -11,6 +11,7 @@ calibprob = 0.8
 nexp = 1
 nqper = 1
 nmat32 = 1
+nmat52 = 1
 nusho = 1
 nosho = 1
 nsho = 1
@@ -52,6 +53,8 @@ def _generate_random_C(seed=0, deriv=False):
     nu_qper = 10**np.random.uniform(-2, 2, nqper)
   sig_mat32 = np.random.uniform(0.5, 1.5, nmat32)
   rho_mat32 = 10**np.random.uniform(-2, 2, nmat32)
+  sig_mat52 = np.random.uniform(0.5, 1.5, nmat52)
+  rho_mat52 = 10**np.random.uniform(-2, 2, nmat52)
   sig_usho = np.random.uniform(0.5, 1.5, nusho)
   P0_usho = 10**np.random.uniform(-2, 2, nusho)
   Q_usho = np.random.uniform(0.5, 20.0, nusho)
@@ -70,6 +73,7 @@ def _generate_random_C(seed=0, deriv=False):
       calerr=CalibrationError(calib_file, sig_calib_meas),
       **{f'caljit_{k}':CalibrationJitter(inst_id==k, calib_file, sig_calib_inst[k]) for k in range(ninst)},
       **{f'mat32_{k}':Matern32Kernel(sig_mat32[k], rho_mat32[k]) for k in range(nmat32)},
+      **{f'mat52_{k}':Matern52Kernel(sig_mat52[k], rho_mat52[k]) for k in range(nmat52)},
       **{f'usho_{k}':USHOKernel(sig_usho[k], P0_usho[k], Q_usho[k]) for k in range(nusho)},
       **{f'osho_{k}':OSHOKernel(sig_osho[k], P0_osho[k], Q_osho[k]) for k in range(nosho)},
       **{f'sho_{k}':SHOKernel(sig_sho[k], P0_sho[k], Q_sho[k]) for k in range(nsho)}))
@@ -83,6 +87,7 @@ def _generate_random_C(seed=0, deriv=False):
       **{f'exp_{k}':ExponentialKernel(a_exp[k], la_exp[k]) for k in range(nexp)},
       **{f'qper_{k}':QuasiperiodicKernel(a_qper[k], b_qper[k], la_qper[k], nu_qper[k]) for k in range(nqper)},
       **{f'mat32_{k}':Matern32Kernel(sig_mat32[k], rho_mat32[k]) for k in range(nmat32)},
+      **{f'mat52_{k}':Matern52Kernel(sig_mat52[k], rho_mat52[k]) for k in range(nmat52)},
       **{f'usho_{k}':USHOKernel(sig_usho[k], P0_usho[k], Q_usho[k]) for k in range(nusho)},
       **{f'osho_{k}':OSHOKernel(sig_osho[k], P0_osho[k], Q_osho[k]) for k in range(nosho)},
       **{f'sho_{k}':SHOKernel(sig_sho[k], P0_sho[k], Q_sho[k]) for k in range(nsho)}))
@@ -100,6 +105,8 @@ def _generate_random_param(seed=1):
   nu_qper = 10**np.random.uniform(-2, 2, nqper)
   sig_mat32 = np.random.uniform(0.5, 1.5, nmat32)
   rho_mat32 = 10**np.random.uniform(-2, 2, nmat32)
+  sig_mat52 = np.random.uniform(0.5, 1.5, nmat52)
+  rho_mat52 = 10**np.random.uniform(-2, 2, nmat52)
   sig_usho = np.random.uniform(0.5, 1.5, nusho)
   P0_usho = 10**np.random.uniform(-2, 2, nusho)
   Q_usho = np.random.uniform(0.5, 20.0, nusho)
@@ -112,7 +119,7 @@ def _generate_random_param(seed=1):
 
   return(sig_jitter, sig_jitter_inst, sig_calib_inst,
     a_exp, la_exp, a_qper, b_qper, la_qper, nu_qper,
-    sig_mat32, rho_mat32, sig_usho, P0_usho, Q_usho,
+    sig_mat32, rho_mat32, sig_mat52, rho_mat52, sig_usho, P0_usho, Q_usho,
     sig_osho, P0_osho, Q_osho, sig_sho, P0_sho, Q_sho)
 
 def test_Cov():
@@ -142,9 +149,10 @@ def test_set_param():
     **{f'exp_{k}':ExponentialKernel(param[3][k], param[4][k]) for k in range(nexp)},
     **{f'qper_{k}':QuasiperiodicKernel(param[5][k], param[6][k], param[7][k], param[8][k]) for k in range(nqper)},
     **{f'mat32_{k}':Matern32Kernel(param[9][k], param[10][k]) for k in range(nmat32)},
-    **{f'usho_{k}':USHOKernel(param[11][k], param[12][k], param[13][k]) for k in range(nusho)},
-    **{f'osho_{k}':OSHOKernel(param[14][k], param[15][k], param[16][k]) for k in range(nosho)},
-    **{f'sho_{k}':SHOKernel(param[17][k], param[18][k], param[19][k]) for k in range(nsho)})
+    **{f'mat52_{k}':Matern52Kernel(param[11][k], param[12][k]) for k in range(nmat52)},
+    **{f'usho_{k}':USHOKernel(param[13][k], param[14][k], param[15][k]) for k in range(nusho)},
+    **{f'osho_{k}':OSHOKernel(param[16][k], param[17][k], param[18][k]) for k in range(nosho)},
+    **{f'sho_{k}':SHOKernel(param[19][k], param[20][k], param[21][k]) for k in range(nsho)})
 
   C.set_param(
     np.concatenate(param),
@@ -159,6 +167,8 @@ def test_set_param():
     + [f'qper_{k}.nu' for k in range(nqper)]
     + [f'mat32_{k}.sig' for k in range(nmat32)]
     + [f'mat32_{k}.rho' for k in range(nmat32)]
+    + [f'mat52_{k}.sig' for k in range(nmat52)]
+    + [f'mat52_{k}.rho' for k in range(nmat52)]
     + [f'usho_{k}.sig' for k in range(nusho)]
     + [f'usho_{k}.P0' for k in range(nusho)]
     + [f'usho_{k}.Q' for k in range(nusho)]

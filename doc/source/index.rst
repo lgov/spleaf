@@ -79,6 +79,7 @@ API Reference
    spleaf.term.ExponentialKernel
    spleaf.term.QuasiperiodicKernel
    spleaf.term.Matern32Kernel
+   spleaf.term.Matern52Kernel
    spleaf.term.USHOKernel
    spleaf.term.OSHOKernel
    spleaf.term.SHOKernel
