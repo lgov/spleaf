@@ -49,6 +49,12 @@ class Term:
     """
     pass
 
+  def _recompute(self):
+    r"""
+    Recompute the S+LEAF representation of the term.
+    """
+    self._compute()
+
   def _set_param(self):
     r"""
     Update the term parameters.
@@ -153,7 +159,6 @@ class Jitter(Noise):
 
   def _set_param(self, sig=None):
     if sig is not None:
-      self._cov.A += sig**2 - self._sig**2
       self._sig = sig
 
   def _grad_param(self):
@@ -184,7 +189,6 @@ class InstrumentJitter(Noise):
 
   def _set_param(self, sig=None):
     if sig is not None:
-      self._cov.A[self._indices] += sig**2 - self._sig**2
       self._sig = sig
 
   def _grad_param(self):
@@ -275,11 +279,13 @@ class CalibrationJitter(Noise):
           self._Fmask.append(self._cov.offsetrow[group[i]]+group[j])
     self._cov.F[self._Fmask] += var
 
+  def _recompute(self):
+    var = self._sig**2
+    self._cov.A[self._indices] += var
+    self._cov.F[self._Fmask] += var
+
   def _set_param(self, sig=None):
     if sig is not None:
-      shift = sig**2 - self._sig**2
-      self._cov.A[self._indices] += shift
-      self._cov.F[self._Fmask] += shift
       self._sig = sig
 
   def _grad_param(self):
@@ -320,11 +326,8 @@ class ExponentialKernel(Kernel):
 
   def _set_param(self, a=None, la=None):
     if a is not None:
-      self._cov.A += a - self._a
-      self._cov.U[:, self._offset] = a
       self._a = a
     if la is not None:
-      self._cov.phi[:, self._offset] = np.exp(-la*self._cov.dt)
       self._la = la
 
   def _grad_param(self):
@@ -400,27 +403,14 @@ class QuasiperiodicKernel(Kernel):
     self._cov.phi[:, self._offset:self._offset+2] = np.exp(-self._la*self._cov.dt)[:, None]
 
   def _set_param(self, a=None, b=None, la=None, nu=None):
-    updateU = False
     if a is not None:
-      self._cov.A += a-self._a
       self._a = a
-      updateU = True
     if b is not None:
       self._b = b
-      updateU = True
     if la is not None:
-      self._cov.phi[:, self._offset:self._offset+2] = np.exp(-la*self._cov.dt)[:, None]
       self._la = la
     if nu is not None:
-      self._cnut = np.cos(nu*self._cov.t)
-      self._snut = np.sin(nu*self._cov.t)
-      self._cov.V[:, self._offset] = self._cnut
-      self._cov.V[:, self._offset+1] = self._snut
       self._nu = nu
-      updateU = True
-    if updateU:
-      self._cov.U[:, self._offset] = self._a * self._cnut + self._b * self._snut
-      self._cov.U[:, self._offset+1] = self._a * self._snut - self._b * self._cnut
 
   def _grad_param(self):
     grad = {}
@@ -745,23 +735,11 @@ class SHOKernel(Kernel):
     if P0 is not None:
       self._P0 = P0
     if Q is not None:
-      if self._Q > 0.5 and Q <= 0.5:
-        # USHO -> OSHO
-        self._cov.A += self._osho._a - self._usho._a
-        self._cov.V[:, self._offset:self._offset+2] = 1.0
-        sig = self._sig
-        P0 = self._P0
-      elif self._Q <= 0.5 and Q > 0.5:
-        # OSHO -> USHO
-        self._cov.A += self._usho._a - self._osho._a
-        sig = self._sig
-        P0 = self._P0
       self._Q = Q
-
     if self._Q > 0.5:
-      self._usho._set_param(sig, P0, Q)
+      self._usho._set_param(self._sig, self._P0, self._Q)
     else:
-      self._osho._set_param(sig, P0, Q)
+      self._osho._set_param(self._sig, self._P0, self._Q)
 
   def _grad_param(self):
     if self._Q > 0.5:

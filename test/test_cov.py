@@ -3,7 +3,7 @@ import numpy as np
 from spleaf.cov import Cov
 from spleaf.term import *
 
-prec = 1e-10
+prec = 1e-12
 n = 143
 ninst = 3
 calibmax = 12
@@ -14,7 +14,9 @@ nmat32 = 1
 nusho = 1
 nosho = 1
 nsho = 1
-delta = 1e-5
+delta = 1e-6
+coef_delta = -1.3
+coef_num_err = 10
 
 def _generate_random_C(seed=0, deriv=False):
   np.random.seed(seed)
@@ -292,7 +294,7 @@ def _test_method_back(method):
 
   # grad_a
   grad_a_num = []
-  for dx in [delta, -delta]:
+  for dx in [delta, coef_delta*delta]:
     grad_a_num_dx = []
     for k in range(C.n):
       a[k] += dx
@@ -303,7 +305,7 @@ def _test_method_back(method):
   grad_a_num = np.array(grad_a_num)
   err = np.max(np.abs(grad_a-np.mean(grad_a_num, axis=0)))
   num_err = np.max(np.abs(grad_a_num[1]-grad_a_num[0]))
-  err = max(0.0, err-num_err)
+  err = max(0.0, err-coef_num_err*num_err)
   assert err < prec, ('{}_back (a) not working'
     ' at required precision ({} > {})').format(method, err, prec)
 
@@ -312,14 +314,14 @@ def _test_method_back(method):
     grad_param_num = []
     Cparam = C.get_param(param)
     deltaparam = delta*max(delta, abs(Cparam))
-    for dx in [deltaparam, -deltaparam]:
+    for dx in [deltaparam, coef_delta*deltaparam]:
       C.set_param([Cparam+dx], [param])
       db = getattr(C, method)(a) - b
       grad_param_num.append(db@grad_b/dx)
     C.set_param([Cparam], [param])
     err = np.max(np.abs(grad_param[kparam].flat-np.mean(grad_param_num)))
     num_err = np.max(np.abs(grad_param_num[1]-grad_param_num[0]))
-    err = max(0.0, err-num_err)
+    err = max(0.0, err-coef_num_err*num_err)
     assert err < prec, ('{}_back ({}) not working'
       ' at required precision ({} > {})').format(method, param, err, prec)
 
@@ -348,7 +350,7 @@ def _test_method_grad(method):
 
   # grad_y
   f_grad_num = []
-  for dx in [delta, -delta]:
+  for dx in [delta, coef_delta*delta]:
     f_grad_num_dx = []
     for k in range(C.n):
       y[k] += dx
@@ -359,7 +361,7 @@ def _test_method_grad(method):
   f_grad_num = np.array(f_grad_num)
   err = np.max(np.abs(f_grad_res-np.mean(f_grad_num, axis=0)))
   num_err = np.max(np.abs(f_grad_num[1]-f_grad_num[0]))
-  err = max(0.0, err-num_err)
+  err = max(0.0, err-coef_num_err*num_err)
   assert err < prec, ('{}_grad (y) not working'
     ' at required precision ({} > {})').format(method, err, prec)
 
@@ -368,14 +370,14 @@ def _test_method_grad(method):
     f_grad_num = []
     Cparam = C.get_param(param)
     deltaparam = delta*max(delta, abs(Cparam))
-    for dx in [deltaparam, -deltaparam]:
+    for dx in [deltaparam, coef_delta*deltaparam]:
       C.set_param([Cparam+dx], [param])
       df = getattr(C, method)(y) - f
       f_grad_num.append(df/dx)
     C.set_param([Cparam], [param])
     err = np.max(np.abs(f_grad_param[kparam].flat-np.mean(f_grad_num)))
     num_err = np.max(np.abs(f_grad_num[1]-f_grad_num[0]))
-    err = max(0.0, err-num_err)
+    err = max(0.0, err-coef_num_err*num_err)
     assert err < prec, ('{}_grad ({}) not working'
       ' at required precision ({} > {})').format(method, param, err, prec)
 
@@ -478,7 +480,7 @@ def test_self_conditional_derivative():
 
   num_dmu = []
   num_dcov = []
-  for dt in [delta, -2*delta]:
+  for dt in [delta, coef_delta*delta]:
     tfull = np.sort(np.concatenate((C.t, C.t+dt)))
     mu, cov = C.conditional(y, tfull, calc_cov=True)
     num_dmu.append((mu[1::2]-mu[::2])/abs(dt))
@@ -533,7 +535,7 @@ def test_conditional_derivative():
 
   num_dmu = []
   num_dcov = []
-  for dt in [delta, -2*delta]:
+  for dt in [delta, coef_delta*delta]:
     tfull = np.sort(np.concatenate((t2, t2+dt)))
     mu, cov = C.conditional(y, tfull, calc_cov=True)
     num_dmu.append((mu[1::2]-mu[::2])/abs(dt))
@@ -549,7 +551,6 @@ def test_conditional_derivative():
   num_dvar_err = np.max(np.abs(num_dcov[0].diagonal()-num_dcov[1].diagonal()))
 
   err = np.max(np.abs(dmu-num_dmu_mean))
-  print(err, num_dmu_err)
   err = max(0.0, err-num_dmu_err)
   assert err < prec, ('conditional_derivative not working'
     ' at required precision ({} > {})').format(err, prec)
@@ -565,13 +566,11 @@ def test_conditional_derivative():
     ' at required precision ({} > {})').format(err, prec)
 
   err = np.max(np.abs(dvar-num_dvar_mean))
-  print(err, num_dvar_err)
   err = max(0.0, err-num_dvar_err)
   assert err < prec, ('conditional_derivative not working'
     ' at required precision ({} > {})').format(err, prec)
 
   err = np.max(np.abs(dcov-num_dcov_mean))
-  print(err, num_dcov_err)
   err = max(0.0, err-num_dcov_err)
   assert err < prec, ('conditional_derivative not working'
     ' at required precision ({} > {})').format(err, prec)

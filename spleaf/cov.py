@@ -166,10 +166,12 @@ class Cov(Spleaf):
     for param, value in zip(paramlist, value):
       key, par = self._param_dict[param]
       param_split[key][par] = value
-
+    self.A[:] = 0
+    self.F[:] = 0
     for key in self.term:
       if param_split[key] != {}:
         self.term[key]._set_param(**param_split[key])
+      self.term[key]._recompute()
 
     super().set_param(self.A, self.U, self.V, self.phi, self.F)
 
