@@ -719,32 +719,33 @@ void spleaf_solveLT_back(
 
 void spleaf_expandsep(
   // Shapes
-  long n, long r,
+  long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
   // Output
   double *K)
 {
-  // Expand the semiseparable part of a symmetric S+LEAF matrix
+  // Expand the semiseparable part of a symmetric S+LEAF matrix,
+  // or a subset of semiseparable terms,
   // as a full (n x n) matrix.
   // This is useful for the conditional covariance computation.
 
   long i, j, s;
   double *f;
 
-  f = (double *) malloc(r*sizeof(double));
+  f = (double *) malloc(rsi*sizeof(double));
 
   for (i=0; i<n; i++) {
     K[(n+1)*i] = 0.0;
-    for (s=0; s<r; s++) {
-      K[(n+1)*i] += U[r*i+s] * V[r*i+s];
+    for (s=0; s<rsi; s++) {
+      K[(n+1)*i] += U[r*i+sepindex[s]] * V[r*i+sepindex[s]];
       f[s] = 1.0;
     }
     for (j=i-1; j>=0; j--) {
       K[n*i+j] = 0.0;
-      for (s=0; s<r; s++) {
-        f[s] *= phi[r*j+s];
-        K[n*i+j] += f[s] * U[r*i+s] * V[r*j+s];
+      for (s=0; s<rsi; s++) {
+        f[s] *= phi[r*j+sepindex[s]];
+        K[n*i+j] += f[s] * U[r*i+sepindex[s]] * V[r*j+sepindex[s]];
       }
       K[n*j+i] = K[n*i+j];
     }
@@ -755,27 +756,28 @@ void spleaf_expandsep(
 
 void spleaf_expandsepmixt(
   // Shapes
-  long n1, long n2, long r,
+  long n1, long n2, long r, long rsi, long *sepindex,
   // Input
   double *U1, double *V1, double *phi1,
   double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
   // Output
   double *Km)
 {
-  // Expand the semiseparable mixt part of a symmetric S+LEAF matrix
+  // Expand the semiseparable mixt part of a symmetric S+LEAF matrix,
+  // or a subset of semiseparable terms,
   // as a full (n2 x n1) matrix.
   // This is useful for the conditional covariance computation.
 
   long i1, i2, j1, j2, s;
   double *f;
 
-  f = (double *) malloc(r*sizeof(double));
+  f = (double *) malloc(rsi*sizeof(double));
 
   // Forward part (U2 V1^T)
   j2 = 0;
   for (j1=0; j1<=ref2left[n2-1]; j1++) {
-    for (s=0; s<r; s++) {
-      f[s] = V1[r*j1+s];
+    for (s=0; s<rsi; s++) {
+      f[s] = V1[r*j1+sepindex[s]];
     }
     while ((j2<n2) && (ref2left[j2]<j1)) {
       j2++;
@@ -784,15 +786,15 @@ void spleaf_expandsepmixt(
     i2 = j2;
     while (i2<n2) {
       while (i1<ref2left[i2]) {
-        for (s=0; s<r; s++) {
-          f[s] *= phi1[r*i1+s];
+        for (s=0; s<rsi; s++) {
+          f[s] *= phi1[r*i1+sepindex[s]];
         }
         i1++;
       }
       while ((i2<n2) && (ref2left[i2]==i1)) {
         Km[n1*i2+j1] = 0.0;
-        for (s=0; s<r; s++) {
-          Km[n1*i2+j1] += U2[r*i2+s] * phi2left[r*i2+s] * f[s];
+        for (s=0; s<rsi; s++) {
+          Km[n1*i2+j1] += U2[r*i2+sepindex[s]] * phi2left[r*i2+sepindex[s]] * f[s];
         }
         i2++;
       }
@@ -801,8 +803,8 @@ void spleaf_expandsepmixt(
   // Backward part (V2 U1^T)
   j2 = n2-1;
   for (j1=n1-1; j1>ref2left[0]; j1--) {
-    for (s=0; s<r; s++) {
-      f[s] = U1[r*j1+s];
+    for (s=0; s<rsi; s++) {
+      f[s] = U1[r*j1+sepindex[s]];
     }
     while ((j2>=0) && (ref2left[j2]>=j1)) {
       j2--;
@@ -811,15 +813,15 @@ void spleaf_expandsepmixt(
     i2 = j2;
     while (i2>=0) {
       while (i1>ref2left[i2]) {
-        for (s=0; s<r; s++) {
-          f[s] *= phi1[r*i1+s];
+        for (s=0; s<rsi; s++) {
+          f[s] *= phi1[r*i1+sepindex[s]];
         }
         i1--;
       }
       while ((i2>=0) && (ref2left[i2]==i1)) {
         Km[n1*i2+j1] = 0.0;
-        for (s=0; s<r; s++) {
-          Km[n1*i2+j1] += V2[r*i2+s] * phi2right[r*i2+s] * f[s];
+        for (s=0; s<rsi; s++) {
+          Km[n1*i2+j1] += V2[r*i2+sepindex[s]] * phi2right[r*i2+sepindex[s]] * f[s];
         }
         i2--;
       }
@@ -831,31 +833,32 @@ void spleaf_expandsepmixt(
 
 void spleaf_expandantisep(
   // Shapes
-  long n, long r,
+  long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
   // Output
   double *K)
 {
-  // Expand the semiseparable part of an anit-symmetric S+LEAF matrix
+  // Expand the semiseparable part of an anit-symmetric S+LEAF matrix,
+  // or a subset of semiseparable terms,
   // as a full (n x n) matrix.
   // This is useful for the conditional derivative covariance computation.
 
   long i, j, s;
   double *f;
 
-  f = (double *) malloc(r*sizeof(double));
+  f = (double *) malloc(rsi*sizeof(double));
 
   for (i=0; i<n; i++) {
     K[(n+1)*i] = 0.0;
-    for (s=0; s<r; s++) {
+    for (s=0; s<rsi; s++) {
       f[s] = 1.0;
     }
     for (j=i-1; j>=0; j--) {
       K[n*i+j] = 0.0;
-      for (s=0; s<r; s++) {
-        f[s] *= phi[r*j+s];
-        K[n*i+j] += f[s] * U[r*i+s] * V[r*j+s];
+      for (s=0; s<rsi; s++) {
+        f[s] *= phi[r*j+sepindex[s]];
+        K[n*i+j] += f[s] * U[r*i+sepindex[s]] * V[r*j+sepindex[s]];
       }
       K[n*j+i] = -K[n*i+j];
     }
@@ -866,7 +869,7 @@ void spleaf_expandantisep(
 
 void spleaf_dotsep(
   // Shapes
-  long n, long r,
+  long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
   double *x,
@@ -874,39 +877,40 @@ void spleaf_dotsep(
   double *y)
 {
   // Compute y = K x,
-  // where K is the (n x n) semiseparable part of a symmetric S+LEAF matrix.
+  // where K is the (n x n) semiseparable part of a symmetric S+LEAF matrix,
+  // or a subset of semiseparable terms.
   // This is useful for the conditional mean computation.
 
   long i, s;
   double *f;
 
-  f = (double *) malloc(r*sizeof(double));
+  f = (double *) malloc(rsi*sizeof(double));
 
   // Forward part (U V^T) + diagonal
   // Initialize f and y[0]
   y[0] = 0.0;
-  for (s=0; s<r; s++) {
-    f[s] = V[s] * x[0];
-    y[0] += U[s] * f[s];
+  for (s=0; s<rsi; s++) {
+    f[s] = V[sepindex[s]] * x[0];
+    y[0] += U[sepindex[s]] * f[s];
   }
   for (i=1; i<n; i++) {
     y[i] = 0.0;
-    for (s=0; s<r; s++) {
+    for (s=0; s<rsi; s++) {
       // Update f
-      f[s] = phi[r*(i-1)+s] * f[s] + V[r*i+s] * x[i];
-      y[i] += U[r*i+s] * f[s];
+      f[s] = phi[r*(i-1)+sepindex[s]] * f[s] + V[r*i+sepindex[s]] * x[i];
+      y[i] += U[r*i+sepindex[s]] * f[s];
     }
   }
   // Backward part (V U^T)
   // Initialize f
-  for (s=0; s<r; s++) {
+  for (s=0; s<rsi; s++) {
     f[s] = 0.0;
   }
   for (i=n-2; i>=0; i--) {
-    for (s=0; s<r; s++) {
+    for (s=0; s<rsi; s++) {
       // Update f
-      f[s] = phi[r*i+s] * (f[s] + U[r*(i+1)+s] * x[i+1]);
-      y[i] += V[r*i+s] * f[s];
+      f[s] = phi[r*i+sepindex[s]] * (f[s] + U[r*(i+1)+sepindex[s]] * x[i+1]);
+      y[i] += V[r*i+sepindex[s]] * f[s];
     }
   }
 
@@ -915,7 +919,7 @@ void spleaf_dotsep(
 
 void spleaf_dotsepmixt(
   // Shapes
-  long n1, long n2, long r,
+  long n1, long n2, long r, long rsi, long *sepindex,
   // Input
   double *U1, double *V1, double *phi1,
   double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
@@ -925,13 +929,14 @@ void spleaf_dotsepmixt(
 {
   // Compute y = Km x,
   // where Km is the (n2 x n1) semiseparable mixt part
-  // of a symmetric S+LEAF matrix.
+  // of a symmetric S+LEAF matrix,
+  // or a subset of semiseparable terms.
   // This is useful for the conditional mean computation.
 
   long i, j, s;
   double *f;
 
-  f = (double *) malloc(r*sizeof(double));
+  f = (double *) malloc(rsi*sizeof(double));
 
   // Forward part (U2 V1^T)
   i = 0;
@@ -940,22 +945,22 @@ void spleaf_dotsepmixt(
     i++;
   }
   // Initialize f
-  for (s=0; s<r; s++) {
-    f[s] = V1[s] * x[0];
+  for (s=0; s<rsi; s++) {
+    f[s] = V1[sepindex[s]] * x[0];
   }
   j = 0;
   while (i<n2) {
     // Update f
     while (j<ref2left[i]) {
-      for (s=0; s<r; s++) {
-        f[s] = phi1[r*j+s] * f[s] + V1[r*(j+1)+s] * x[j+1];
+      for (s=0; s<rsi; s++) {
+        f[s] = phi1[r*j+sepindex[s]] * f[s] + V1[r*(j+1)+sepindex[s]] * x[j+1];
       }
       j++;
     }
     // Compute forward part of y[i]
     y[i] = 0.0;
-    for (s=0; s<r; s++) {
-      y[i] += U2[r*i+s] * phi2left[r*i+s] * f[s];
+    for (s=0; s<rsi; s++) {
+      y[i] += U2[r*i+sepindex[s]] * phi2left[r*i+sepindex[s]] * f[s];
     }
     i++;
   }
@@ -965,21 +970,21 @@ void spleaf_dotsepmixt(
     i--;
   }
   // Initialize f
-  for (s=0; s<r; s++) {
-    f[s] = U1[r*(n1-1)+s] * x[n1-1];
+  for (s=0; s<rsi; s++) {
+    f[s] = U1[r*(n1-1)+sepindex[s]] * x[n1-1];
   }
   j = n1-2;
   while (i>=0) {
     // Update f
     while (j>ref2left[i]) {
-      for (s=0; s<r; s++) {
-        f[s] = phi1[r*j+s] * f[s] + U1[r*j+s] * x[j];
+      for (s=0; s<rsi; s++) {
+        f[s] = phi1[r*j+sepindex[s]] * f[s] + U1[r*j+sepindex[s]] * x[j];
       }
       j--;
     }
     // Compute backward part of y[i]
-    for (s=0; s<r; s++) {
-      y[i] += V2[r*i+s] * phi2right[r*i+s] * f[s];
+    for (s=0; s<rsi; s++) {
+      y[i] += V2[r*i+sepindex[s]] * phi2right[r*i+sepindex[s]] * f[s];
     }
     i--;
   }
@@ -989,7 +994,7 @@ void spleaf_dotsepmixt(
 
 void spleaf_dotantisep(
   // Shapes
-  long n, long r,
+  long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
   double *x,
@@ -997,38 +1002,39 @@ void spleaf_dotantisep(
   double *y)
 {
   // Compute y = K x,
-  // where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF matrix.
+  // where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF matrix,
+  // or a subset of semiseparable terms.
   // This is useful for the conditional derivative mean computation.
 
   long i, s;
   double *f;
 
-  f = (double *) malloc(r*sizeof(double));
+  f = (double *) malloc(rsi*sizeof(double));
 
   // Forward part (U V^T)
   // Initialize f and y[0]
   y[0] = 0.0;
-  for (s=0; s<r; s++) {
+  for (s=0; s<rsi; s++) {
     f[s] = 0.0;
   }
   for (i=1; i<n; i++) {
     y[i] = 0.0;
-    for (s=0; s<r; s++) {
+    for (s=0; s<rsi; s++) {
       // Update f
-      f[s] = phi[r*(i-1)+s] * (f[s] + V[r*(i-1)+s] * x[i-1]);
-      y[i] += U[r*i+s] * f[s];
+      f[s] = phi[r*(i-1)+sepindex[s]] * (f[s] + V[r*(i-1)+sepindex[s]] * x[i-1]);
+      y[i] += U[r*i+sepindex[s]] * f[s];
     }
   }
   // Backward part (-V U^T)
   // Initialize f
-  for (s=0; s<r; s++) {
+  for (s=0; s<rsi; s++) {
     f[s] = 0.0;
   }
   for (i=n-2; i>=0; i--) {
-    for (s=0; s<r; s++) {
+    for (s=0; s<rsi; s++) {
       // Update f
-      f[s] = phi[r*i+s] * (f[s] + U[r*(i+1)+s] * x[i+1]);
-      y[i] -= V[r*i+s] * f[s];
+      f[s] = phi[r*i+sepindex[s]] * (f[s] + U[r*(i+1)+sepindex[s]] * x[i+1]);
+      y[i] -= V[r*i+sepindex[s]] * f[s];
     }
   }
 

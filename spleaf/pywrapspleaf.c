@@ -87,29 +87,35 @@ static char spleaf_dotLT_back_docstring[] =
 static char spleaf_solveLT_back_docstring[] =
   "Backward propagation of the gradient for spleaf_solveLT.\n";
 static char spleaf_expandsep_docstring[] =
-  "Expand the semiseparable part of a symmetric S+LEAF matrix\n"
+  "Expand the semiseparable part of a symmetric S+LEAF matrix,\n"
+  "or a subset of semiseparable terms,\n"
   "as a full (n x n) matrix.\n"
   "This is useful for the conditional covariance computation.\n";
 static char spleaf_expandsepmixt_docstring[] =
-  "Expand the semiseparable mixt part of a symmetric S+LEAF matrix\n"
+  "Expand the semiseparable mixt part of a symmetric S+LEAF matrix,\n"
+  "or a subset of semiseparable terms,\n"
   "as a full (n2 x n1) matrix.\n"
   "This is useful for the conditional covariance computation.\n";
 static char spleaf_expandantisep_docstring[] =
-  "Expand the semiseparable part of an anit-symmetric S+LEAF matrix\n"
+  "Expand the semiseparable part of an anit-symmetric S+LEAF matrix,\n"
+  "or a subset of semiseparable terms,\n"
   "as a full (n x n) matrix.\n"
   "This is useful for the conditional derivative covariance computation.\n";
 static char spleaf_dotsep_docstring[] =
   "Compute y = K x,\n"
-  "where K is the (n x n) semiseparable part of a symmetric S+LEAF matrix.\n"
+  "where K is the (n x n) semiseparable part of a symmetric S+LEAF matrix,\n"
+  "or a subset of semiseparable terms.\n"
   "This is useful for the conditional mean computation.\n";
 static char spleaf_dotsepmixt_docstring[] =
   "Compute y = Km x,\n"
   "where Km is the (n2 x n1) semiseparable mixt part\n"
-  "of a symmetric S+LEAF matrix.\n"
+  "of a symmetric S+LEAF matrix,\n"
+  "or a subset of semiseparable terms.\n"
   "This is useful for the conditional mean computation.\n";
 static char spleaf_dotantisep_docstring[] =
   "Compute y = K x,\n"
-  "where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF matrix.\n"
+  "where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF matrix,\n"
+  "or a subset of semiseparable terms.\n"
   "This is useful for the conditional derivative mean computation.\n";
 
 // Module methods
@@ -1452,15 +1458,19 @@ static PyObject *libspleaf_spleaf_solveLT_back(PyObject *self, PyObject *args) {
 static PyObject *libspleaf_spleaf_expandsep(PyObject *self, PyObject *args) {
   long n;
   long r;
+  long rsi;
+  PyObject *obj_sepindex;
   PyObject *obj_U;
   PyObject *obj_V;
   PyObject *obj_phi;
   PyObject *obj_K;
 
   // Parse input tuple
-  if (!PyArg_ParseTuple(args, "llOOOO",
+  if (!PyArg_ParseTuple(args, "lllOOOOO",
     &n,
     &r,
+    &rsi,
+    &obj_sepindex,
     &obj_U,
     &obj_V,
     &obj_phi,
@@ -1468,6 +1478,7 @@ static PyObject *libspleaf_spleaf_expandsep(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
+  PyArrayObject *arr_sepindex = (PyArrayObject*) PyArray_FROM_OTF(obj_sepindex, NPY_LONG, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_U = (PyArrayObject*) PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_V = (PyArrayObject*) PyArray_FROM_OTF(obj_V, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_phi = (PyArrayObject*) PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
@@ -1475,11 +1486,13 @@ static PyObject *libspleaf_spleaf_expandsep(PyObject *self, PyObject *args) {
 
   // Generate exception in case of failure
   if (
+    arr_sepindex == NULL ||
     arr_U == NULL ||
     arr_V == NULL ||
     arr_phi == NULL ||
     arr_K == NULL) {
     // Dereference arrays
+    Py_XDECREF(arr_sepindex);
     Py_XDECREF(arr_U);
     Py_XDECREF(arr_V);
     Py_XDECREF(arr_phi);
@@ -1488,6 +1501,7 @@ static PyObject *libspleaf_spleaf_expandsep(PyObject *self, PyObject *args) {
   }
 
   // Get C-types pointers to numpy arrays
+  long *sepindex = (long*)PyArray_DATA(arr_sepindex);
   double *U = (double*)PyArray_DATA(arr_U);
   double *V = (double*)PyArray_DATA(arr_V);
   double *phi = (double*)PyArray_DATA(arr_phi);
@@ -1497,12 +1511,15 @@ static PyObject *libspleaf_spleaf_expandsep(PyObject *self, PyObject *args) {
   spleaf_expandsep(
     n,
     r,
+    rsi,
+    sepindex,
     U,
     V,
     phi,
     K);
 
   // Dereference arrays
+  Py_XDECREF(arr_sepindex);
   Py_XDECREF(arr_U);
   Py_XDECREF(arr_V);
   Py_XDECREF(arr_phi);
@@ -1515,6 +1532,8 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
   long n1;
   long n2;
   long r;
+  long rsi;
+  PyObject *obj_sepindex;
   PyObject *obj_U1;
   PyObject *obj_V1;
   PyObject *obj_phi1;
@@ -1526,10 +1545,12 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
   PyObject *obj_Km;
 
   // Parse input tuple
-  if (!PyArg_ParseTuple(args, "lllOOOOOOOOO",
+  if (!PyArg_ParseTuple(args, "llllOOOOOOOOOO",
     &n1,
     &n2,
     &r,
+    &rsi,
+    &obj_sepindex,
     &obj_U1,
     &obj_V1,
     &obj_phi1,
@@ -1542,6 +1563,7 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
     return(NULL);
 
   // Interpret input objects as numpy arrays
+  PyArrayObject *arr_sepindex = (PyArrayObject*) PyArray_FROM_OTF(obj_sepindex, NPY_LONG, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_U1 = (PyArrayObject*) PyArray_FROM_OTF(obj_U1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_V1 = (PyArrayObject*) PyArray_FROM_OTF(obj_V1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_phi1 = (PyArrayObject*) PyArray_FROM_OTF(obj_phi1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
@@ -1554,6 +1576,7 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
 
   // Generate exception in case of failure
   if (
+    arr_sepindex == NULL ||
     arr_U1 == NULL ||
     arr_V1 == NULL ||
     arr_phi1 == NULL ||
@@ -1564,6 +1587,7 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
     arr_phi2right == NULL ||
     arr_Km == NULL) {
     // Dereference arrays
+    Py_XDECREF(arr_sepindex);
     Py_XDECREF(arr_U1);
     Py_XDECREF(arr_V1);
     Py_XDECREF(arr_phi1);
@@ -1577,6 +1601,7 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
   }
 
   // Get C-types pointers to numpy arrays
+  long *sepindex = (long*)PyArray_DATA(arr_sepindex);
   double *U1 = (double*)PyArray_DATA(arr_U1);
   double *V1 = (double*)PyArray_DATA(arr_V1);
   double *phi1 = (double*)PyArray_DATA(arr_phi1);
@@ -1592,6 +1617,8 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
     n1,
     n2,
     r,
+    rsi,
+    sepindex,
     U1,
     V1,
     phi1,
@@ -1603,6 +1630,7 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
     Km);
 
   // Dereference arrays
+  Py_XDECREF(arr_sepindex);
   Py_XDECREF(arr_U1);
   Py_XDECREF(arr_V1);
   Py_XDECREF(arr_phi1);
@@ -1619,15 +1647,19 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
 static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args) {
   long n;
   long r;
+  long rsi;
+  PyObject *obj_sepindex;
   PyObject *obj_U;
   PyObject *obj_V;
   PyObject *obj_phi;
   PyObject *obj_K;
 
   // Parse input tuple
-  if (!PyArg_ParseTuple(args, "llOOOO",
+  if (!PyArg_ParseTuple(args, "lllOOOOO",
     &n,
     &r,
+    &rsi,
+    &obj_sepindex,
     &obj_U,
     &obj_V,
     &obj_phi,
@@ -1635,6 +1667,7 @@ static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args) 
     return(NULL);
 
   // Interpret input objects as numpy arrays
+  PyArrayObject *arr_sepindex = (PyArrayObject*) PyArray_FROM_OTF(obj_sepindex, NPY_LONG, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_U = (PyArrayObject*) PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_V = (PyArrayObject*) PyArray_FROM_OTF(obj_V, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_phi = (PyArrayObject*) PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
@@ -1642,11 +1675,13 @@ static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args) 
 
   // Generate exception in case of failure
   if (
+    arr_sepindex == NULL ||
     arr_U == NULL ||
     arr_V == NULL ||
     arr_phi == NULL ||
     arr_K == NULL) {
     // Dereference arrays
+    Py_XDECREF(arr_sepindex);
     Py_XDECREF(arr_U);
     Py_XDECREF(arr_V);
     Py_XDECREF(arr_phi);
@@ -1655,6 +1690,7 @@ static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args) 
   }
 
   // Get C-types pointers to numpy arrays
+  long *sepindex = (long*)PyArray_DATA(arr_sepindex);
   double *U = (double*)PyArray_DATA(arr_U);
   double *V = (double*)PyArray_DATA(arr_V);
   double *phi = (double*)PyArray_DATA(arr_phi);
@@ -1664,12 +1700,15 @@ static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args) 
   spleaf_expandantisep(
     n,
     r,
+    rsi,
+    sepindex,
     U,
     V,
     phi,
     K);
 
   // Dereference arrays
+  Py_XDECREF(arr_sepindex);
   Py_XDECREF(arr_U);
   Py_XDECREF(arr_V);
   Py_XDECREF(arr_phi);
@@ -1681,6 +1720,8 @@ static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args) 
 static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
   long n;
   long r;
+  long rsi;
+  PyObject *obj_sepindex;
   PyObject *obj_U;
   PyObject *obj_V;
   PyObject *obj_phi;
@@ -1688,9 +1729,11 @@ static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
   PyObject *obj_y;
 
   // Parse input tuple
-  if (!PyArg_ParseTuple(args, "llOOOOO",
+  if (!PyArg_ParseTuple(args, "lllOOOOOO",
     &n,
     &r,
+    &rsi,
+    &obj_sepindex,
     &obj_U,
     &obj_V,
     &obj_phi,
@@ -1699,6 +1742,7 @@ static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
+  PyArrayObject *arr_sepindex = (PyArrayObject*) PyArray_FROM_OTF(obj_sepindex, NPY_LONG, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_U = (PyArrayObject*) PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_V = (PyArrayObject*) PyArray_FROM_OTF(obj_V, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_phi = (PyArrayObject*) PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
@@ -1707,12 +1751,14 @@ static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
 
   // Generate exception in case of failure
   if (
+    arr_sepindex == NULL ||
     arr_U == NULL ||
     arr_V == NULL ||
     arr_phi == NULL ||
     arr_x == NULL ||
     arr_y == NULL) {
     // Dereference arrays
+    Py_XDECREF(arr_sepindex);
     Py_XDECREF(arr_U);
     Py_XDECREF(arr_V);
     Py_XDECREF(arr_phi);
@@ -1722,6 +1768,7 @@ static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
   }
 
   // Get C-types pointers to numpy arrays
+  long *sepindex = (long*)PyArray_DATA(arr_sepindex);
   double *U = (double*)PyArray_DATA(arr_U);
   double *V = (double*)PyArray_DATA(arr_V);
   double *phi = (double*)PyArray_DATA(arr_phi);
@@ -1732,6 +1779,8 @@ static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
   spleaf_dotsep(
     n,
     r,
+    rsi,
+    sepindex,
     U,
     V,
     phi,
@@ -1739,6 +1788,7 @@ static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
     y);
 
   // Dereference arrays
+  Py_XDECREF(arr_sepindex);
   Py_XDECREF(arr_U);
   Py_XDECREF(arr_V);
   Py_XDECREF(arr_phi);
@@ -1752,6 +1802,8 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
   long n1;
   long n2;
   long r;
+  long rsi;
+  PyObject *obj_sepindex;
   PyObject *obj_U1;
   PyObject *obj_V1;
   PyObject *obj_phi1;
@@ -1764,10 +1816,12 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
   PyObject *obj_y;
 
   // Parse input tuple
-  if (!PyArg_ParseTuple(args, "lllOOOOOOOOOO",
+  if (!PyArg_ParseTuple(args, "llllOOOOOOOOOOO",
     &n1,
     &n2,
     &r,
+    &rsi,
+    &obj_sepindex,
     &obj_U1,
     &obj_V1,
     &obj_phi1,
@@ -1781,6 +1835,7 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
+  PyArrayObject *arr_sepindex = (PyArrayObject*) PyArray_FROM_OTF(obj_sepindex, NPY_LONG, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_U1 = (PyArrayObject*) PyArray_FROM_OTF(obj_U1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_V1 = (PyArrayObject*) PyArray_FROM_OTF(obj_V1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_phi1 = (PyArrayObject*) PyArray_FROM_OTF(obj_phi1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
@@ -1794,6 +1849,7 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
 
   // Generate exception in case of failure
   if (
+    arr_sepindex == NULL ||
     arr_U1 == NULL ||
     arr_V1 == NULL ||
     arr_phi1 == NULL ||
@@ -1805,6 +1861,7 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
     arr_x == NULL ||
     arr_y == NULL) {
     // Dereference arrays
+    Py_XDECREF(arr_sepindex);
     Py_XDECREF(arr_U1);
     Py_XDECREF(arr_V1);
     Py_XDECREF(arr_phi1);
@@ -1819,6 +1876,7 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
   }
 
   // Get C-types pointers to numpy arrays
+  long *sepindex = (long*)PyArray_DATA(arr_sepindex);
   double *U1 = (double*)PyArray_DATA(arr_U1);
   double *V1 = (double*)PyArray_DATA(arr_V1);
   double *phi1 = (double*)PyArray_DATA(arr_phi1);
@@ -1835,6 +1893,8 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
     n1,
     n2,
     r,
+    rsi,
+    sepindex,
     U1,
     V1,
     phi1,
@@ -1847,6 +1907,7 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
     y);
 
   // Dereference arrays
+  Py_XDECREF(arr_sepindex);
   Py_XDECREF(arr_U1);
   Py_XDECREF(arr_V1);
   Py_XDECREF(arr_phi1);
@@ -1864,6 +1925,8 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
 static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args) {
   long n;
   long r;
+  long rsi;
+  PyObject *obj_sepindex;
   PyObject *obj_U;
   PyObject *obj_V;
   PyObject *obj_phi;
@@ -1871,9 +1934,11 @@ static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args) {
   PyObject *obj_y;
 
   // Parse input tuple
-  if (!PyArg_ParseTuple(args, "llOOOOO",
+  if (!PyArg_ParseTuple(args, "lllOOOOOO",
     &n,
     &r,
+    &rsi,
+    &obj_sepindex,
     &obj_U,
     &obj_V,
     &obj_phi,
@@ -1882,6 +1947,7 @@ static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args) {
     return(NULL);
 
   // Interpret input objects as numpy arrays
+  PyArrayObject *arr_sepindex = (PyArrayObject*) PyArray_FROM_OTF(obj_sepindex, NPY_LONG, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_U = (PyArrayObject*) PyArray_FROM_OTF(obj_U, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_V = (PyArrayObject*) PyArray_FROM_OTF(obj_V, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyArrayObject *arr_phi = (PyArrayObject*) PyArray_FROM_OTF(obj_phi, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
@@ -1890,12 +1956,14 @@ static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args) {
 
   // Generate exception in case of failure
   if (
+    arr_sepindex == NULL ||
     arr_U == NULL ||
     arr_V == NULL ||
     arr_phi == NULL ||
     arr_x == NULL ||
     arr_y == NULL) {
     // Dereference arrays
+    Py_XDECREF(arr_sepindex);
     Py_XDECREF(arr_U);
     Py_XDECREF(arr_V);
     Py_XDECREF(arr_phi);
@@ -1905,6 +1973,7 @@ static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args) {
   }
 
   // Get C-types pointers to numpy arrays
+  long *sepindex = (long*)PyArray_DATA(arr_sepindex);
   double *U = (double*)PyArray_DATA(arr_U);
   double *V = (double*)PyArray_DATA(arr_V);
   double *phi = (double*)PyArray_DATA(arr_phi);
@@ -1915,6 +1984,8 @@ static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args) {
   spleaf_dotantisep(
     n,
     r,
+    rsi,
+    sepindex,
     U,
     V,
     phi,
@@ -1922,6 +1993,7 @@ static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args) {
     y);
 
   // Dereference arrays
+  Py_XDECREF(arr_sepindex);
   Py_XDECREF(arr_U);
   Py_XDECREF(arr_V);
   Py_XDECREF(arr_phi);

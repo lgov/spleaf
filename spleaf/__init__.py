@@ -676,7 +676,7 @@ class Spleaf():
     self.cholesky_back()
     return(grad_y, self.grad_param(*args, **kwargs))
 
-  def self_conditional(self, y, calc_cov=False):
+  def self_conditional(self, y, calc_cov=False, index=None):
     r"""
     Compute the conditional mean and covariance
     of the Gaussian process corresponding to the semiseparable part
@@ -690,6 +690,12 @@ class Spleaf():
       Whether to output only the conditional mean (False),
       the mean and full covariance matrix (True),
       or the mean and main diagonal of the covariance matrix ('diag').
+    index : (r',) ndarray or None
+      Vector (of type int) giving the indices of semiseparable terms
+      that should be considered for the Gaussian process.
+      Other terms (semiseparable or leaf) are considered as noise.
+      If index is None, all semiserable terms are considered for the
+      Gaussian process.
 
     Returns
     -------
@@ -710,10 +716,14 @@ class Spleaf():
     :math:`\mathcal{O}(n^3)`.
     """
 
+    if index is None:
+      index = np.arange(self.r)
+    ri = index.size
+
     u = self.solveLT(self.solveL(y)/self.D)
     y2 = np.empty(self.n)
     libspleaf.spleaf_dotsep(
-      self.n, self.r,
+      self.n, self.r, ri, index,
       self.U, self.V, self.phi,
       u,
       y2)
@@ -723,7 +733,7 @@ class Spleaf():
 
     K = np.empty((self.n,self.n))
     libspleaf.spleaf_expandsep(
-      self.n, self.r,
+      self.n, self.r, ri, index,
       self.U, self.V, self.phi,
       K)
     H = np.array([self.solveL(Kk)/self.sqD() for Kk in K])
@@ -735,7 +745,7 @@ class Spleaf():
 
   def conditional(self, y,
     U2, V2, phi2, ref2left, phi2left, phi2right,
-    calc_cov=False):
+    calc_cov=False, index=None):
     r"""
     Conditional mean and covariance at new abscissas
     of the Gaussian process corresponding to the semiseparable part
@@ -762,6 +772,12 @@ class Spleaf():
       Whether to output only the conditional mean (False),
       the mean and full covariance matrix (True),
       or the mean and main diagonal of the covariance matrix ('diag').
+    index : (r',) ndarray or None
+      Vector (of type int) giving the indices of semiseparable terms
+      that should be considered for the Gaussian process.
+      Other terms (semiseparable or leaf) are considered as noise.
+      If index is None, all semiserable terms are considered for the
+      Gaussian process.
 
     Returns
     -------
@@ -782,11 +798,15 @@ class Spleaf():
     :math:`\mathcal{O}(n n_2^2)`.
     """
 
+    if index is None:
+      index = np.arange(self.r)
+    ri = index.size
+
     u = self.solveLT(self.solveL(y)/self.D)
     n2 = U2.shape[0]
     y2 = np.empty(n2)
     libspleaf.spleaf_dotsepmixt(
-      self.n, n2, self.r,
+      self.n, n2, self.r, ri, index,
       self.U, self.V, self.phi,
       U2, V2, ref2left, phi2left, phi2right,
       u,
@@ -795,26 +815,26 @@ class Spleaf():
     if not calc_cov:
       return(y2)
 
-    Km = np.empty((n2,self.n))
+    Km = np.empty((n2, self.n))
     libspleaf.spleaf_expandsepmixt(
-      self.n, n2, self.r,
+      self.n, n2, self.r, ri, index,
       self.U, self.V, self.phi,
       U2, V2, ref2left, phi2left, phi2right,
       Km)
     Hm = np.array([self.solveL(Kmk)/self.sqD() for Kmk in Km])
 
     if calc_cov=='diag':
-      return(y2, np.sum(U2*V2,axis=1) - np.sum(Hm*Hm,axis=1))
+      return(y2, np.sum(U2[:,index]*V2[:,index],axis=1) - np.sum(Hm*Hm,axis=1))
 
     K = np.empty((n2, n2))
     libspleaf.spleaf_expandsep(
-      n2, self.r,
+      n2, self.r, ri, index,
       U2, V2, phi2,
       K
     )
     return(y2, K - Hm@Hm.T)
 
-  def self_conditional_derivative(self, y, dU, d2U, calc_cov=False):
+  def self_conditional_derivative(self, y, dU, d2U, calc_cov=False, index=None):
     r"""
     Conditional mean and covariance
     of the derivative of the Gaussian process corresponding to the semiseparable part
@@ -830,6 +850,12 @@ class Spleaf():
       Whether to output only the conditional mean (False),
       the mean and full covariance matrix (True),
       or the mean and main diagonal of the covariance matrix ('diag').
+    index : (r',) ndarray or None
+      Vector (of type int) giving the indices of semiseparable terms
+      that should be considered for the Gaussian process.
+      Other terms (semiseparable or leaf) are considered as noise.
+      If index is None, all semiserable terms are considered for the
+      Gaussian process.
 
     Returns
     -------
@@ -850,10 +876,14 @@ class Spleaf():
     :math:`\mathcal{O}(n^3)`.
     """
 
+    if index is None:
+      index = np.arange(self.r)
+    ri = index.size
+
     u = self.solveLT(self.solveL(y)/self.D)
     dy = np.empty(self.n)
     libspleaf.spleaf_dotantisep(
-      self.n, self.r,
+      self.n, self.r, ri, index,
       dU, self.V, self.phi,
       u,
       dy)
@@ -864,11 +894,11 @@ class Spleaf():
     dK = np.empty((self.n,self.n))
     d2K = np.empty((self.n,self.n))
     libspleaf.spleaf_expandantisep(
-      self.n, self.r,
+      self.n, self.r, ri, index,
       dU, self.V, self.phi,
       dK)
     libspleaf.spleaf_expandsep(
-      self.n, self.r,
+      self.n, self.r, ri, index,
       d2U, self.V, self.phi,
       d2K)
     H = np.array([self.solveL(dKk)/self.sqD() for dKk in dK])
@@ -880,7 +910,7 @@ class Spleaf():
 
   def conditional_derivative(self, y,
     dU, dU2, d2U2, V2, phi2, ref2left, phi2left, phi2right,
-    calc_cov=False):
+    calc_cov=False, index=None):
     r"""
     Conditional mean and covariance at new abscissas
     of the derivative of the Gaussian process corresponding to the semiseparable part
@@ -907,6 +937,12 @@ class Spleaf():
       Whether to output only the conditional mean (False),
       the mean and full covariance matrix (True),
       or the mean and main diagonal of the covariance matrix ('diag').
+    index : (r',) ndarray or None
+      Vector (of type int) giving the indices of semiseparable terms
+      that should be considered for the Gaussian process.
+      Other terms (semiseparable or leaf) are considered as noise.
+      If index is None, all semiserable terms are considered for the
+      Gaussian process.
 
     Returns
     -------
@@ -927,11 +963,15 @@ class Spleaf():
     :math:`\mathcal{O}(n n_2^2)`.
     """
 
+    if index is None:
+      index = np.arange(self.r)
+    ri = index.size
+
     u = self.solveLT(self.solveL(y)/self.D)
     n2 = dU2.shape[0]
     y2 = np.empty(n2)
     libspleaf.spleaf_dotsepmixt(
-      self.n, n2, self.r,
+      self.n, n2, self.r, ri, index,
       -dU, self.V, self.phi,
       dU2, V2, ref2left, phi2left, phi2right,
       u,
@@ -942,18 +982,18 @@ class Spleaf():
 
     dKm = np.empty((n2,self.n))
     libspleaf.spleaf_expandsepmixt(
-      self.n, n2, self.r,
+      self.n, n2, self.r, ri, index,
       -dU, self.V, self.phi,
       dU2, V2, ref2left, phi2left, phi2right,
       dKm)
     Hm = np.array([self.solveL(dKmk)/self.sqD() for dKmk in dKm])
 
     if calc_cov=='diag':
-      return(y2, np.sum(d2U2*V2,axis=1) - np.sum(Hm*Hm,axis=1))
+      return(y2, np.sum(d2U2[:,index]*V2[:,index],axis=1) - np.sum(Hm*Hm,axis=1))
 
     d2K = np.empty((n2, n2))
     libspleaf.spleaf_expandsep(
-      n2, self.r,
+      n2, self.r, ri, index,
       d2U2, V2, phi2,
       d2K
     )

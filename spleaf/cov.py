@@ -211,10 +211,79 @@ class Cov(Spleaf):
     else:
       return(np.array([grad[param] for param in paramlist]))
 
-  def conditional(self, y, t2, calc_cov=False):
+  def _kernel_index(self, kernel=None):
+    r"""
+    List of indices corresponding to the requested kernel terms
+    in the semiseparable representation of the matrix.
+
+    Parameters
+    ----------
+    kernel : list or None
+      List of kernel identifiers.
+
+    Returns
+    -------
+    index : (r',) ndarray
+      Indices of the corresponding semiseparable terms.
+    """
+
+    if kernel is None:
+      return(None)
+    else:
+      return(
+        np.array([s for key in kernel
+          for s in range(self.kernel[key]._offset,
+            self.kernel[key]._offset+self.kernel[key]._r)
+        ], dtype=int)
+      )
+
+  def self_conditional(self, y, calc_cov=False, kernel=None):
     r"""
     Conditional mean and covariance
-    of the kernel part at new times :math:`t_2`,
+    of the kernel part, or a subset of kernel terms,
+    knowning the observed values :math:`y`.
+
+    Parameters
+    ----------
+    y : (n,) ndarray
+      The vector of observed values :math:`y`.
+    calc_cov : False (default), True, or 'diag'
+      Whether to output only the conditional mean (False),
+      the mean and full covariance matrix (True),
+      or the mean and main diagonal of the covariance matrix ('diag').
+    kernel : list or None
+      List of kernel identifiers
+      that should be considered for the Gaussian process.
+      Other terms (kernel or noise) are considered as noise.
+      If kernel is None, all kernel terms are considered for the
+      Gaussian process.
+
+    Returns
+    -------
+    mu : (n,) ndarray
+      The vector of conditional mean values.
+    cov : (n, n) ndarray
+      Full covariance matrix (if calc_cov is True).
+    var : (n,) ndarray
+      Main diagonal of the covariance matrix (if calc_cov is 'diag').
+
+    Warnings
+    --------
+    While the computational cost of the conditional mean scales as
+    :math:`\mathcal{O}(n)`,
+    the computational cost of the variance scales as
+    :math:`\mathcal{O}(n^2)`,
+    and the computational cost of the full covariance scales as
+    :math:`\mathcal{O}(n^3)`.
+    """
+
+    return(super().self_conditional(y, calc_cov, self._kernel_index(kernel)))
+
+  def conditional(self, y, t2, calc_cov=False, kernel=None):
+    r"""
+    Conditional mean and covariance
+    of the kernel part, or a subset of kernel terms,
+    at new times :math:`t_2`,
     knowning the observed values :math:`y`.
 
     Parameters
@@ -227,6 +296,12 @@ class Cov(Spleaf):
       Whether to output only the conditional mean (False),
       the mean and full covariance matrix (True),
       or the mean and main diagonal of the covariance matrix ('diag').
+    kernel : list or None
+      List of kernel identifiers
+      that should be considered for the Gaussian process.
+      Other terms (kernel or noise) are considered as noise.
+      If kernel is None, all kernel terms are considered for the
+      Gaussian process.
 
     Returns
     -------
@@ -261,17 +336,19 @@ class Cov(Spleaf):
     dt2left[ref2left==-1] = 0 # useless but avoid overflow warning
     dt2right[ref2left==self.n-1] = 0 # useless but avoid overflow warning
 
-    for key in self.kernel:
+    kernel_list = self.kernel if kernel is None else kernel
+    for key in kernel_list:
       self.kernel[key]._compute_t2(
         t2, dt2, U2, V2, phi2,
         ref2left, dt2left, dt2right, phi2left, phi2right)
 
-    return(super().conditional(y, U2, V2, phi2, ref2left, phi2left, phi2right, calc_cov))
+    return(super().conditional(y, U2, V2, phi2, ref2left, phi2left, phi2right,
+      calc_cov, self._kernel_index(kernel)))
 
-  def self_conditional_derivative(self, y, calc_cov=False):
+  def self_conditional_derivative(self, y, calc_cov=False, kernel=None):
     r"""
     Conditional mean and covariance
-    of the derivative of the kernel part
+    of the derivative of the kernel part, or a subset of kernel terms,
     knowning the observed values :math:`y`.
 
     Parameters
@@ -282,6 +359,12 @@ class Cov(Spleaf):
       Whether to output only the derivative conditional mean (False),
       the mean and full covariance matrix (True),
       or the mean and main diagonal of the covariance matrix ('diag').
+    kernel : list or None
+      List of kernel identifiers
+      that should be considered for the Gaussian process.
+      Other terms (kernel or noise) are considered as noise.
+      If kernel is None, all kernel terms are considered for the
+      Gaussian process.
 
     Returns
     -------
@@ -313,15 +396,18 @@ class Cov(Spleaf):
     else:
       d2U = None
 
-    for key in self.kernel:
+    kernel_list = self.kernel if kernel is None else kernel
+    for key in kernel_list:
       self.kernel[key]._deriv(dU, d2U)
 
-    return(super().self_conditional_derivative(y, dU, d2U, calc_cov))
+    return(super().self_conditional_derivative(y, dU, d2U,
+      calc_cov, self._kernel_index(kernel)))
 
-  def conditional_derivative(self, y, t2, calc_cov=False):
+  def conditional_derivative(self, y, t2, calc_cov=False, kernel=None):
     r"""
     Conditional mean and covariance
-    of the derivative of the kernel part at new times :math:`t_2`,
+    of the derivative of the kernel part, or a subset of kernel terms,
+    at new times :math:`t_2`,
     knowning the observed values :math:`y`.
 
     Parameters
@@ -343,6 +429,12 @@ class Cov(Spleaf):
       Full covariance matrix (if calc_cov is True).
     var : (n2,) ndarray
       Main diagonal of the covariance matrix (if calc_cov is 'diag').
+    kernel : list or None
+      List of kernel identifiers
+      that should be considered for the Gaussian process.
+      Other terms (kernel or noise) are considered as noise.
+      If kernel is None, all kernel terms are considered for the
+      Gaussian process.
 
     Warnings
     --------
@@ -379,15 +471,18 @@ class Cov(Spleaf):
     else:
       d2U2 = None
 
-    for key in self.kernel:
+    kernel_list = self.kernel if kernel is None else kernel
+    for key in kernel_list:
       self.kernel[key]._deriv(dU)
       self.kernel[key]._deriv_t2(t2, dt2, dU2, V2, phi2,
         ref2left, dt2left, dt2right, phi2left, phi2right,
         d2U2)
 
-    return(super().conditional_derivative(y, dU, dU2, d2U2, V2, phi2, ref2left, phi2left, phi2right, calc_cov))
+    return(super().conditional_derivative(
+      y, dU, dU2, d2U2, V2, phi2, ref2left, phi2left, phi2right,
+      calc_cov, self._kernel_index(kernel)))
 
-  def eval(self, dt):
+  def eval(self, dt, kernel=None):
     r"""
     Direct evaluation of the kernel part at lag :math:`\delta t`.
 
@@ -395,6 +490,10 @@ class Cov(Spleaf):
     ----------
     dt : ndarray or float
       lag.
+    kernel : list or None
+      List of kernel identifiers
+      that should be considered for the evaluation.
+      If kernel is None, all kernel terms are taken into account.
 
     Returns
     -------
@@ -406,4 +505,6 @@ class Cov(Spleaf):
     The cost scales as the size of the lag ndarray.
     """
 
-    return(sum(self.kernel[key].eval(dt) for key in self.kernel))
+    if kernel is None:
+      kernel = self.kernel
+    return(sum(self.kernel[key].eval(dt) for key in kernel))

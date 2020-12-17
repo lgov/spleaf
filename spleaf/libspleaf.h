@@ -137,7 +137,7 @@ void spleaf_solveLT_back(
 
 void spleaf_expandsep(
   // Shapes
-  long n, long r,
+  long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
   // Output
@@ -145,7 +145,7 @@ void spleaf_expandsep(
 
 void spleaf_expandsepmixt(
   // Shapes
-  long n1, long n2, long r,
+  long n1, long n2, long r, long rsi, long *sepindex,
   // Input
   double *U1, double *V1, double *phi1,
   double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
@@ -154,7 +154,7 @@ void spleaf_expandsepmixt(
 
 void spleaf_expandantisep(
   // Shapes
-  long n, long r,
+  long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
   // Output
@@ -162,7 +162,7 @@ void spleaf_expandantisep(
 
 void spleaf_dotsep(
   // Shapes
-  long n, long r,
+  long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
   double *x,
@@ -171,7 +171,7 @@ void spleaf_dotsep(
 
 void spleaf_dotsepmixt(
   // Shapes
-  long n1, long n2, long r,
+  long n1, long n2, long r, long rsi, long *sepindex,
   // Input
   double *U1, double *V1, double *phi1,
   double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
@@ -181,7 +181,7 @@ void spleaf_dotsepmixt(
 
 void spleaf_dotantisep(
   // Shapes
-  long n, long r,
+  long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
   double *x,

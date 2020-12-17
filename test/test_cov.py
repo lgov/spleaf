@@ -408,19 +408,23 @@ def test_chi2_grad():
 def test_loglike_grad():
   _test_method_grad('loglike')
 
-def test_self_conditional():
+def _test_self_conditional(kernel=None):
+  print(kernel)
   C = _generate_random_C()
   y = C.sample()
 
-  mu = C.self_conditional(y)
-  muv, var = C.self_conditional(y, calc_cov='diag')
-  muc, cov = C.self_conditional(y, calc_cov=True)
+  mu = C.self_conditional(y, kernel=kernel)
+  muv, var = C.self_conditional(y, calc_cov='diag', kernel=kernel)
+  muc, cov = C.self_conditional(y, calc_cov=True, kernel=kernel)
 
   invC_full = C.expandInv()
   invCy_full = invC_full.dot(y)
   term = {}
-  for key in C.kernel:
+  if kernel is None:
+    kernel = C.kernel
+  for key in kernel:
     term[key] = C.kernel[key].__class__(*[getattr(C.kernel[key], f'_{param}') for param in C.kernel[key]._param])
+  print(term)
   K = Cov(C.t, **term)
   K_full = K.expand()
   mu_full = K_full@invCy_full
@@ -447,7 +451,7 @@ def test_self_conditional():
   assert err < prec, ('self_conditional not working'
     ' at required precision ({} > {})').format(err, prec)
 
-def test_conditional():
+def _test_conditional(kernel=None):
   C = _generate_random_C()
   y = C.sample()
 
@@ -455,15 +459,17 @@ def test_conditional():
   Dt = C.t[-1] - C.t[0]
   margin = Dt/10
   t2 = np.linspace(C.t[0]-margin, C.t[-1]+margin, n2)
-  mu = C.conditional(y, t2)
-  muv, var = C.conditional(y, t2, calc_cov='diag')
-  muc, cov = C.conditional(y, t2, calc_cov=True)
+  mu = C.conditional(y, t2, kernel=kernel)
+  muv, var = C.conditional(y, t2, calc_cov='diag', kernel=kernel)
+  muc, cov = C.conditional(y, t2, calc_cov=True, kernel=kernel)
 
   invC_full = C.expandInv()
   invCy_full = invC_full.dot(y)
-  Km_full = C.eval(t2[:, None] - C.t[None, :])
+  Km_full = C.eval(t2[:, None] - C.t[None, :], kernel=kernel)
   term = {}
-  for key in C.kernel:
+  if kernel is None:
+    kernel = C.kernel
+  for key in kernel:
     term[key] = C.kernel[key].__class__(*[getattr(C.kernel[key], f'_{param}') for param in C.kernel[key]._param])
   K = Cov(t2, **term)
   K_full = K.expand()
@@ -491,21 +497,21 @@ def test_conditional():
   assert err < prec, ('conditional not working'
     ' at required precision ({} > {})').format(err, prec)
 
-def test_self_conditional_derivative():
+def _test_self_conditional_derivative(kernel=None):
   C = _generate_random_C(deriv=True)
   y = C.sample()
 
   # Analytical derivative
-  dmu = C.self_conditional_derivative(y)
-  dmuv, dvar = C.self_conditional_derivative(y, calc_cov='diag')
-  dmuc, dcov = C.self_conditional_derivative(y, calc_cov=True)
+  dmu = C.self_conditional_derivative(y, kernel=kernel)
+  dmuv, dvar = C.self_conditional_derivative(y, calc_cov='diag', kernel=kernel)
+  dmuc, dcov = C.self_conditional_derivative(y, calc_cov=True, kernel=kernel)
 
   # Numerical derivative
   num_dmu = []
   num_dcov = []
   for dt in [delta, coef_delta*delta]:
     tfull = np.sort(np.concatenate((C.t, C.t+dt)))
-    mu, cov = C.conditional(y, tfull, calc_cov=True)
+    mu, cov = C.conditional(y, tfull, calc_cov=True, kernel=kernel)
     num_dmu.append((mu[1::2]-mu[::2])/abs(dt))
     num_dcov.append((cov[1::2,1::2]+cov[::2,::2]-cov[1::2,::2]-cov[::2,1::2])/dt**2)
 
@@ -543,7 +549,7 @@ def test_self_conditional_derivative():
   assert err < prec, ('self_conditional_derivative not working'
     ' at required precision ({} > {})').format(err, prec)
 
-def test_conditional_derivative():
+def _test_conditional_derivative(kernel=None):
   C = _generate_random_C(deriv=True)
   y = C.dotL(np.random.normal(0.0, C.sqD()))
 
@@ -553,16 +559,16 @@ def test_conditional_derivative():
   t2 = np.linspace(C.t[0]-margin, C.t[-1]+margin, n2)
 
   # Analytical derivative
-  dmu = C.conditional_derivative(y, t2)
-  dmuv, dvar = C.conditional_derivative(y, t2, calc_cov='diag')
-  dmuc, dcov = C.conditional_derivative(y, t2, calc_cov=True)
+  dmu = C.conditional_derivative(y, t2, kernel=kernel)
+  dmuv, dvar = C.conditional_derivative(y, t2, calc_cov='diag', kernel=kernel)
+  dmuc, dcov = C.conditional_derivative(y, t2, calc_cov=True, kernel=kernel)
 
   # Numerical derivative
   num_dmu = []
   num_dcov = []
   for dt in [delta, coef_delta*delta]:
     tfull = np.sort(np.concatenate((t2, t2+dt)))
-    mu, cov = C.conditional(y, tfull, calc_cov=True)
+    mu, cov = C.conditional(y, tfull, calc_cov=True, kernel=kernel)
     num_dmu.append((mu[1::2]-mu[::2])/abs(dt))
     num_dcov.append((cov[1::2,1::2]+cov[::2,::2]-cov[1::2,::2]-cov[::2,1::2])/dt**2)
 
@@ -599,3 +605,11 @@ def test_conditional_derivative():
   err = max(0.0, err-coef_num_err*num_dcov_err)
   assert err < prec, ('conditional_derivative not working'
     ' at required precision ({} > {})').format(err, prec)
+
+
+def test_all_conditional():
+  for kernel in [None, ['mat32_0', 'usho_0'], ['osho_0'], ['mat52_0', 'sho_0']]:
+    _test_self_conditional(kernel)
+    _test_conditional(kernel)
+    _test_self_conditional_derivative(kernel)
+    _test_conditional_derivative(kernel)
