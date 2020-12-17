@@ -3,7 +3,7 @@ import numpy as np
 from spleaf.cov import Cov
 from spleaf.term import *
 
-prec = 1e-8
+prec = 1e-12
 n = 143
 ninst = 3
 calibmax = 12
@@ -19,11 +19,40 @@ delta = 1e-6
 coef_delta = -1.3
 coef_num_err = 10
 
+def _grad1d(x, f, k, deltaxk0, deltafmin, deltafmax, maxiter, absolute, args):
+  xb = x.copy()
+  deltaxk = deltaxk0
+  fx = f(x, *args)
+  if absolute:
+    scale = 1.0
+  else:
+    scale = 1.0/np.mean(np.abs(fx))
+  xb[k] = x[k] + deltaxk
+  fxb = f(xb, *args)
+  for _ in range(maxiter):
+    df = scale * np.mean(np.abs(fxb-fx))
+    if df < deltafmin:
+      deltaxk *= 2.0
+    elif df > deltafmax:
+      deltaxk /= 2.0
+    else:
+      break
+    xb[k] = x[k] + deltaxk
+    fxb = f(xb, *args)
+  return((fxb-fx)/deltaxk)
+
+def grad(x, f, deltax0=1e-8, deltafmin=1e-8, deltafmax=5e-8, maxiter=50, absolute=False, args=()):
+  if isinstance(deltax0, float):
+    deltax = np.full_like(x, deltax0)
+  else:
+    deltax = deltax0
+  return(np.array([_grad1d(x, f, k, deltax[k], deltafmin, deltafmax, maxiter, absolute, args) for k in range(x.size)]))
+
 def _generate_random_C(seed=0, deriv=False):
   np.random.seed(seed)
   t = np.cumsum(10**np.random.uniform(-2,2,n))
   sig_err = np.random.uniform(0.5, 1.5, n)
-  sig_jitter = np.random.uniform(0.5, 1.5)
+  sig_jitter = np.random.uniform(2.5, 3.5)
   inst_id = np.random.randint(0,ninst,n)
   sig_jitter_inst = np.random.uniform(0.5, 1.5, ninst)
   calib_file = np.empty(n, dtype=object)
@@ -295,45 +324,36 @@ def _test_method_back(method):
   a = np.random.normal(0.0, 5.0, C.n)
   grad_b = np.random.normal(0.0, 1.0, C.n)
 
+  # Analytical grad
   func = getattr(C, method)
-  b = func(a)
+  _ = func(a)
   C.init_grad()
   grad_a = getattr(C, method+'_back')(grad_b)
   C.cholesky_back()
   grad_param = C.grad_param()
 
-  # grad_a
+  # Numerical grad
+  def func_param(x):
+    C.set_param(x)
+    return(func(a))
   grad_a_num = []
-  for dx in [delta, coef_delta*delta]:
-    grad_a_num_dx = []
-    for k in range(C.n):
-      a[k] += dx
-      db = func(a) - b
-      grad_a_num_dx.append(db@grad_b/dx)
-      a[k] -= dx
-    grad_a_num.append(grad_a_num_dx)
-  grad_a_num = np.array(grad_a_num)
-  err = np.max(np.abs(grad_a-np.mean(grad_a_num, axis=0)))/np.max(np.abs(grad_a_num[1])+np.abs(grad_a_num[0]))
-  num_err = np.max(np.abs(grad_a_num[1]-grad_a_num[0]))/np.max(np.abs(grad_a_num[1])+np.abs(grad_a_num[0]))
+  grad_param_num = []
+  for delta0 in [delta, coef_delta]:
+    grad_a_num.append(grad(a, func, deltax0=delta0)@grad_b)
+    grad_param_num.append(grad(C.get_param(), func_param, deltax0=delta0)@grad_b)
+
+  # Comparison
+  err = np.max(np.abs(grad_a-np.mean(grad_a_num, axis=0))/(np.abs(grad_a_num[1])+np.abs(grad_a_num[0])))
+  num_err = np.max(np.abs(grad_a_num[1]-grad_a_num[0])/(np.abs(grad_a_num[1])+np.abs(grad_a_num[0])))
   err = max(0.0, err-coef_num_err*num_err)
   assert err < prec, ('{}_back (a) not working'
     ' at required precision ({} > {})').format(method, err, prec)
 
-  # grad_param
-  for kparam, param in enumerate(C.param):
-    grad_param_num = []
-    Cparam = C.get_param(param)
-    deltaparam = delta*max(delta, abs(Cparam))
-    for dx in [deltaparam, coef_delta*deltaparam]:
-      C.set_param([Cparam+dx], [param])
-      db = getattr(C, method)(a) - b
-      grad_param_num.append(db@grad_b/dx)
-    C.set_param([Cparam], [param])
-    err = np.max(np.abs(grad_param[kparam].flat-np.mean(grad_param_num)))/np.max(np.abs(grad_param_num[1])+np.abs(grad_param_num[0]))
-    num_err = np.max(np.abs(grad_param_num[1]-grad_param_num[0]))/np.max(np.abs(grad_param_num[1])+np.abs(grad_param_num[0]))
-    err = max(0.0, err-coef_num_err*num_err)
-    assert err < prec, ('{}_back ({}) not working'
-      ' at required precision ({} > {})').format(method, param, err, prec)
+  err = np.max(np.abs(grad_param-np.mean(grad_param_num, axis=0))/(np.abs(grad_param_num[1])+np.abs(grad_param_num[0])))
+  num_err = np.max(np.abs(grad_param_num[1]-grad_param_num[0])/(np.abs(grad_param_num[1])+np.abs(grad_param_num[0])))
+  err = max(0.0, err-coef_num_err*num_err)
+  assert err < prec, ('{}_back (param) not working'
+    ' at required precision ({} > {})').format(method, err, prec)
 
 def test_dotL_back():
   _test_method_back('dotL')
@@ -354,42 +374,33 @@ def _test_method_grad(method):
   C = _generate_random_C()
   y = np.random.normal(0.0, 5.0, C.n)
 
+  # Analytical grad
   func = getattr(C, method)
-  f = func(y)
+  _ = func(y)
   f_grad_res, f_grad_param = getattr(C, method+'_grad')()
 
-  # grad_y
-  f_grad_num = []
-  for dx in [delta, coef_delta*delta]:
-    f_grad_num_dx = []
-    for k in range(C.n):
-      y[k] += dx
-      df = func(y) - f
-      f_grad_num_dx.append(df/dx)
-      y[k] -= dx
-    f_grad_num.append(f_grad_num_dx)
-  f_grad_num = np.array(f_grad_num)
-  err = np.max(np.abs(f_grad_res-np.mean(f_grad_num, axis=0)))/np.max(np.abs(f_grad_num[1])+np.abs(f_grad_num[0]))
-  num_err = np.max(np.abs(f_grad_num[1]-f_grad_num[0]))/np.max(np.abs(f_grad_num[1])+np.abs(f_grad_num[0]))
+  # Numerical grad
+  def func_param(x):
+    C.set_param(x)
+    return(func(y))
+  f_grad_res_num = []
+  f_grad_param_num = []
+  for delta0 in [delta, coef_delta]:
+    f_grad_res_num.append(grad(y, func, deltax0=delta0))
+    f_grad_param_num.append(grad(C.get_param(), func_param, deltax0=delta0))
+
+  # Comparison
+  err = np.max(np.abs(f_grad_res-np.mean(f_grad_res_num, axis=0))/(np.abs(f_grad_res_num[1])+np.abs(f_grad_res_num[0])))
+  num_err = np.max(np.abs(f_grad_res_num[1]-f_grad_res_num[0])/(np.abs(f_grad_res_num[1])+np.abs(f_grad_res_num[0])))
   err = max(0.0, err-coef_num_err*num_err)
   assert err < prec, ('{}_grad (y) not working'
     ' at required precision ({} > {})').format(method, err, prec)
 
-  # grad_param
-  for kparam, param in enumerate(C.param):
-    f_grad_num = []
-    Cparam = C.get_param(param)
-    deltaparam = delta*max(delta, abs(Cparam))
-    for dx in [deltaparam, coef_delta*deltaparam]:
-      C.set_param([Cparam+dx], [param])
-      df = getattr(C, method)(y) - f
-      f_grad_num.append(df/dx)
-    C.set_param([Cparam], [param])
-    err = np.max(np.abs(f_grad_param[kparam].flat-np.mean(f_grad_num)))/np.max(np.abs(f_grad_num[1])+np.abs(f_grad_num[0]))
-    num_err = np.max(np.abs(f_grad_num[1]-f_grad_num[0]))/np.max(np.abs(f_grad_num[1])+np.abs(f_grad_num[0]))
-    err = max(0.0, err-coef_num_err*num_err)
-    assert err < prec, ('{}_grad ({}) not working'
-      ' at required precision ({} > {})').format(method, param, err, prec)
+  err = np.max(np.abs(f_grad_param-np.mean(f_grad_param_num, axis=0))/(np.abs(f_grad_param_num[1])+np.abs(f_grad_param_num[0])))
+  num_err = np.max(np.abs(f_grad_param_num[1]-f_grad_param_num[0])/(np.abs(f_grad_param_num[1])+np.abs(f_grad_param_num[0])))
+  err = max(0.0, err-coef_num_err*num_err)
+  assert err < prec, ('{}_grad (param) not working'
+    ' at required precision ({} > {})').format(method, err, prec)
 
 def test_chi2_grad():
   _test_method_grad('chi2')
@@ -484,10 +495,12 @@ def test_self_conditional_derivative():
   C = _generate_random_C(deriv=True)
   y = C.dotL(np.random.normal(0.0, C.sqD()))
 
+  # Analytical derivative
   dmu = C.self_conditional_derivative(y)
   dmuv, dvar = C.self_conditional_derivative(y, calc_cov='diag')
   dmuc, dcov = C.self_conditional_derivative(y, calc_cov=True)
 
+  # Numerical derivative
   num_dmu = []
   num_dcov = []
   for dt in [delta, coef_delta*delta]:
@@ -539,10 +552,12 @@ def test_conditional_derivative():
   margin = Dt/10
   t2 = np.linspace(C.t[0]-margin, C.t[-1]+margin, n2)
 
+  # Analytical derivative
   dmu = C.conditional_derivative(y, t2)
   dmuv, dvar = C.conditional_derivative(y, t2, calc_cov='diag')
   dmuc, dcov = C.conditional_derivative(y, t2, calc_cov=True)
 
+  # Numerical derivative
   num_dmu = []
   num_dcov = []
   for dt in [delta, coef_delta*delta]:
