@@ -74,7 +74,7 @@ We first generate the simulated time series:
    tsmooth = np.linspace(0, tmax, 2000)
    Psmooth = P0 + dP*(tsmooth/tmax-1/2)
    ysignal = amp*np.sin(2*np.pi*tsmooth/Psmooth)
-   dysignal = amp*2*np.pi/Psmooth*(1-dP/Psmooth)*np.cos(2*np.pi*tsmooth/Psmooth)
+   dysignal = amp*2*np.pi/Psmooth*(1-tsmooth*dP/(tmax*Psmooth))*np.cos(2*np.pi*tsmooth/Psmooth)
 
    # Measurement errors (white noise)
    yerr_meas = np.random.uniform(0.5, 1.5, nt)
