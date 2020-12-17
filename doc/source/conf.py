@@ -11,11 +11,12 @@ author = 'Jean-Baptiste Delisle'
 needs_sphinx = '1.1'
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
               'sphinx.ext.intersphinx', 'sphinx.ext.coverage',
-              'numpydoc']
+              'numpydoc', 'matplotlib.sphinxext.plot_directive']
 templates_path = ['_templates']
 exclude_patterns = []
 pygments_style = 'sphinx'
 autosummary_generate = True
+plot_include_source = True
 
 # -- Options for HTML output -------------------------------------------------
 html_theme_path = ['_theme']
