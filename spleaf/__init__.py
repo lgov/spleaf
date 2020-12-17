@@ -958,3 +958,30 @@ class Spleaf():
       d2K
     )
     return(y2, d2K - Hm@Hm.T)
+
+  def sample(self, nreal=None):
+    r"""
+    Generate random samples from the covariance matrix.
+
+    Parameters
+    ----------
+    nreal : int
+      Number of realizations to generate.
+      If None, only one realization is generated.
+
+    Returns
+    -------
+    y : (nreal, n) or (n,) ndarray
+      Matrix of the samples (or vector if nreal is None).
+    """
+
+    single = False
+    if nreal is None:
+      single = True
+      nreal = 1
+    u = np.random.normal(size=(nreal, self.n))
+    y = np.array([self.dotL(self.sqD()*uk) for uk in u])
+    if single:
+      return(y[0])
+    else:
+      return(y)

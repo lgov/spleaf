@@ -323,8 +323,7 @@ def test_loglike_grad():
 
 def test_self_conditional():
   C = _generate_random_C()
-  u = np.random.normal(size=C.n)
-  y = C.dotL(u*C.sqD())
+  y = C.sample()
   mu = C.self_conditional(y)
   muv, var = C.self_conditional(y, 'diag')
   muc, cov = C.self_conditional(y, True)
@@ -360,8 +359,7 @@ def test_self_conditional():
 
 def test_conditional():
   C = _generate_random_C()
-  u = np.random.normal(size=C.n)
-  y = C.dotL(u*C.sqD())
+  y = C.sample()
   mu_self, cov_self = C.self_conditional(y, True)
   _, var_self = C.self_conditional(y, 'diag')
 

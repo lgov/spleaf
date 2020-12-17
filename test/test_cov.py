@@ -52,7 +52,7 @@ def _generate_random_C(seed=0, deriv=False):
   np.random.seed(seed)
   t = np.cumsum(10**np.random.uniform(-2,2,n))
   sig_err = np.random.uniform(0.5, 1.5, n)
-  sig_jitter = np.random.uniform(2.5, 3.5)
+  sig_jitter = np.random.uniform(0.5, 1.5)
   inst_id = np.random.randint(0,ninst,n)
   sig_jitter_inst = np.random.uniform(0.5, 1.5, ninst)
   calib_file = np.empty(n, dtype=object)
@@ -338,7 +338,7 @@ def _test_method_back(method):
     return(func(a))
   grad_a_num = []
   grad_param_num = []
-  for delta0 in [delta, coef_delta]:
+  for delta0 in [delta, coef_delta*delta]:
     grad_a_num.append(grad(a, func, deltax0=delta0)@grad_b)
     grad_param_num.append(grad(C.get_param(), func_param, deltax0=delta0)@grad_b)
 
@@ -385,7 +385,7 @@ def _test_method_grad(method):
     return(func(y))
   f_grad_res_num = []
   f_grad_param_num = []
-  for delta0 in [delta, coef_delta]:
+  for delta0 in [delta, coef_delta*delta]:
     f_grad_res_num.append(grad(y, func, deltax0=delta0))
     f_grad_param_num.append(grad(C.get_param(), func_param, deltax0=delta0))
 
@@ -410,7 +410,7 @@ def test_loglike_grad():
 
 def test_self_conditional():
   C = _generate_random_C()
-  y = C.dotL(np.random.normal(0.0, C.sqD()))
+  y = C.sample()
 
   mu = C.self_conditional(y)
   muv, var = C.self_conditional(y, calc_cov='diag')
@@ -449,7 +449,7 @@ def test_self_conditional():
 
 def test_conditional():
   C = _generate_random_C()
-  y = C.dotL(np.random.normal(0.0, C.sqD()))
+  y = C.sample()
 
   n2 = 300
   Dt = C.t[-1] - C.t[0]
@@ -493,7 +493,7 @@ def test_conditional():
 
 def test_self_conditional_derivative():
   C = _generate_random_C(deriv=True)
-  y = C.dotL(np.random.normal(0.0, C.sqD()))
+  y = C.sample()
 
   # Analytical derivative
   dmu = C.self_conditional_derivative(y)
