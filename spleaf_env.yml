@@ -3,7 +3,7 @@ channels:
    - conda-forge
 dependencies:
    - python>=3.6
-   - numpy>=1.12
+   - numpy>=1.16
    - pytest
    - sphinx
    - numpydoc
