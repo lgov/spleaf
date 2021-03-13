@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with spleaf.  If not, see <http://www.gnu.org/licenses/>.
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 import numpy.distutils.misc_util
 import os
 path = os.path.abspath(os.path.dirname(__file__))
@@ -40,5 +40,7 @@ setup(
   url=info['__url__'],
   packages=['spleaf'],
   ext_modules=[c_ext],
-  include_dirs=numpy.distutils.misc_util.get_numpy_include_dirs()
+  include_dirs=numpy.distutils.misc_util.get_numpy_include_dirs(),
+  python_requires='>=3.6',
+  install_requires='numpy>=1.16'
 )
