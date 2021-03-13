@@ -98,9 +98,9 @@ class Cov(Spleaf):
         raise Exception(
           'The provided argument is not of type Noise or Kernel.')
       self.term[key] = kwargs[key]
-      self.param += [f'{key}.{param}' for param in kwargs[key]._param]
-      self._param_dict.update({f'{key}.{param}':(key, param)
-        for param in kwargs[key]._param})
+      self.param += [f'{key}.{par}' for par in kwargs[key]._param]
+      self._param_dict.update({f'{key}.{par}':(key, par)
+        for par in kwargs[key]._param})
 
     # Compute S+LEAF representation
     self.A = np.zeros(self.n)
@@ -115,13 +115,13 @@ class Cov(Spleaf):
     super().__init__(self.A, self.U, self.V, self.phi,
       self.offsetrow, self.b, self.F)
 
-  def get_param(self, paramlist=None):
+  def get_param(self, param=None):
     r"""
     Get the values of the parameters.
 
     Parameters
     ----------
-    paramlist : list or str or None
+    param : list or str or None
       List of parameters (or single parameter).
       If None, all the covariance parameters are provided.
 
@@ -132,18 +132,18 @@ class Cov(Spleaf):
     """
 
     single = False
-    if paramlist is None:
-      paramlist = self.param
-    if isinstance(paramlist, str):
-      paramlist = [paramlist]
+    if param is None:
+      param = self.param
+    if isinstance(param, str):
+      param = [param]
       single = True
-    value = np.empty(len(paramlist))
-    for k, param in enumerate(paramlist):
-      key, par = self._param_dict[param]
+    value = np.empty(len(param))
+    for k, keypar in enumerate(param):
+      key, par = self._param_dict[keypar]
       value[k] = getattr(self.term[key], f'_{par}')
     return(value[0] if single else value)
 
-  def set_param(self, value, paramlist=None):
+  def set_param(self, value, param=None):
     r"""
     Set the values of the parameters.
 
@@ -152,20 +152,20 @@ class Cov(Spleaf):
     value : (p,) ndarray or float
       Values of the parameters.
 
-    paramlist : list or str or None
+    param : list or str or None
       List of parameters (or single parameter).
       If None, all the covariance parameters are set.
     """
 
-    if paramlist is None:
-      paramlist = self.param
-    if isinstance(paramlist, str):
-      paramlist = [paramlist]
+    if param is None:
+      param = self.param
+    if isinstance(param, str):
+      param = [param]
       value = np.array([value])
     param_split = {key:{} for key in self.term}
-    for param, value in zip(paramlist, value):
-      key, par = self._param_dict[param]
-      param_split[key][par] = value
+    for keypar, val in zip(param, value):
+      key, par = self._param_dict[keypar]
+      param_split[key][par] = val
     self.A[:] = 0
     self.F[:] = 0
     for key in self.term:
@@ -175,14 +175,14 @@ class Cov(Spleaf):
 
     super().set_param(self.A, self.U, self.V, self.phi, self.F)
 
-  def grad_param(self, paramlist=None):
+  def grad_param(self, param=None):
     r"""
     Gradient of a function with respect to
     the parameters, after a call to :func:`cholesky_back`.
 
     Parameters
     ----------
-    paramlist : list or str or None
+    param : list or str or None
       List of parameters (or single parameter).
       If None, all the covariance parameters are provided.
 
@@ -192,24 +192,24 @@ class Cov(Spleaf):
       Gradient of the function with respect to the parameters.
     """
     single = False
-    if paramlist is None:
-      paramlist = self.param
+    if param is None:
+      param = self.param
       term = self.term
     else:
-      if isinstance(paramlist, str):
-        paramlist = [paramlist]
+      if isinstance(param, str):
+        param = [param]
         single = True
-      term = {self._param_dict[param][0] for param in paramlist}
+      term = {self._param_dict[keypar][0] for keypar in param}
     self._sum_grad_A = np.sum(self._grad_A)
     grad = {}
     for key in term:
       grad_key = self.term[key]._grad_param()
-      for param in grad_key:
-        grad[f'{key}.{param}'] = grad_key[param]
+      for par in grad_key:
+        grad[f'{key}.{par}'] = grad_key[par]
     if single:
-      return(grad[paramlist[0]])
+      return(grad[param[0]])
     else:
-      return(np.array([grad[param] for param in paramlist]))
+      return(np.array([grad[keypar] for keypar in param]))
 
   def _kernel_index(self, kernel=None):
     r"""
