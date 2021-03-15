@@ -23,6 +23,7 @@ import numpy as np
 from . import Spleaf, libspleaf
 from .term import Noise, Kernel
 
+
 class Cov(Spleaf):
   r"""
   Covariance matrix class.
@@ -99,21 +100,22 @@ class Cov(Spleaf):
           'The provided argument is not of type Noise or Kernel.')
       self.term[key] = kwargs[key]
       self.param += [f'{key}.{par}' for par in kwargs[key]._param]
-      self._param_dict.update({f'{key}.{par}':(key, par)
+      self._param_dict.update(
+        {f'{key}.{par}': (key, par)
         for par in kwargs[key]._param})
 
     # Compute S+LEAF representation
     self.A = np.zeros(self.n)
     self.U = np.empty((self.n, self.r))
     self.V = np.empty((self.n, self.r))
-    self.phi = np.empty((self.n-1, self.r))
-    self.offsetrow = np.cumsum(self.b-1) + 1
+    self.phi = np.empty((self.n - 1, self.r))
+    self.offsetrow = np.cumsum(self.b - 1) + 1
     self.F = np.zeros(np.sum(self.b))
     for key in self.term:
       self.term[key]._compute()
 
-    super().__init__(self.A, self.U, self.V, self.phi,
-      self.offsetrow, self.b, self.F)
+    super().__init__(self.A, self.U, self.V, self.phi, self.offsetrow, self.b,
+      self.F)
 
   def get_param(self, param=None):
     r"""
@@ -141,7 +143,7 @@ class Cov(Spleaf):
     for k, keypar in enumerate(param):
       key, par = self._param_dict[keypar]
       value[k] = getattr(self.term[key], f'_{par}')
-    return(value[0] if single else value)
+    return (value[0] if single else value)
 
   def set_param(self, value, param=None):
     r"""
@@ -162,7 +164,7 @@ class Cov(Spleaf):
     if isinstance(param, str):
       param = [param]
       value = np.array([value])
-    param_split = {key:{} for key in self.term}
+    param_split = {key: {} for key in self.term}
     for keypar, val in zip(param, value):
       key, par = self._param_dict[keypar]
       param_split[key][par] = val
@@ -207,9 +209,9 @@ class Cov(Spleaf):
       for par in grad_key:
         grad[f'{key}.{par}'] = grad_key[par]
     if single:
-      return(grad[param[0]])
+      return (grad[param[0]])
     else:
-      return(np.array([grad[keypar] for keypar in param]))
+      return (np.array([grad[keypar] for keypar in param]))
 
   def _kernel_index(self, kernel=None):
     r"""
@@ -228,14 +230,14 @@ class Cov(Spleaf):
     """
 
     if kernel is None:
-      return(None)
+      return (None)
     else:
-      return(
-        np.array([s for key in kernel
-          for s in range(self.kernel[key]._offset,
-            self.kernel[key]._offset+self.kernel[key]._r)
-        ], dtype=int)
-      )
+      return (np.array([
+        s for key in kernel
+        for s in range(self.kernel[key]._offset, self.kernel[key]._offset +
+        self.kernel[key]._r)
+      ],
+        dtype=int))
 
   def self_conditional(self, y, calc_cov=False, kernel=None):
     r"""
@@ -277,7 +279,7 @@ class Cov(Spleaf):
     :math:`\mathcal{O}(n^3)`.
     """
 
-    return(super().self_conditional(y, calc_cov, self._kernel_index(kernel)))
+    return (super().self_conditional(y, calc_cov, self._kernel_index(kernel)))
 
   def conditional(self, y, t2, calc_cov=False, kernel=None):
     r"""
@@ -326,23 +328,22 @@ class Cov(Spleaf):
     dt2 = t2[1:] - t2[:-1]
     U2 = np.empty((n2, self.r))
     V2 = np.empty((n2, self.r))
-    phi2 = np.empty((n2-1, self.r))
+    phi2 = np.empty((n2 - 1, self.r))
     phi2left = np.empty((n2, self.r))
     phi2right = np.empty((n2, self.r))
 
     ref2left = np.searchsorted(self.t, t2) - 1
     dt2left = t2 - self.t[ref2left]
-    dt2right = self.t[np.minimum(ref2left+1,self.n-1)] - t2
-    dt2left[ref2left==-1] = 0 # useless but avoid overflow warning
-    dt2right[ref2left==self.n-1] = 0 # useless but avoid overflow warning
+    dt2right = self.t[np.minimum(ref2left + 1, self.n - 1)] - t2
+    dt2left[ref2left == -1] = 0  # useless but avoid overflow warning
+    dt2right[ref2left == self.n - 1] = 0  # useless but avoid overflow warning
 
     kernel_list = self.kernel if kernel is None else kernel
     for key in kernel_list:
-      self.kernel[key]._compute_t2(
-        t2, dt2, U2, V2, phi2,
-        ref2left, dt2left, dt2right, phi2left, phi2right)
+      self.kernel[key]._compute_t2(t2, dt2, U2, V2, phi2, ref2left, dt2left,
+        dt2right, phi2left, phi2right)
 
-    return(super().conditional(y, U2, V2, phi2, ref2left, phi2left, phi2right,
+    return (super().conditional(y, U2, V2, phi2, ref2left, phi2left, phi2right,
       calc_cov, self._kernel_index(kernel)))
 
   def self_conditional_derivative(self, y, calc_cov=False, kernel=None):
@@ -390,9 +391,9 @@ class Cov(Spleaf):
     :math:`\mathcal{O}(n^3)`.
     """
 
-    dU = np.empty((self.n,self.r))
+    dU = np.empty((self.n, self.r))
     if calc_cov:
-      d2U = np.empty((self.n,self.r))
+      d2U = np.empty((self.n, self.r))
     else:
       d2U = None
 
@@ -400,8 +401,8 @@ class Cov(Spleaf):
     for key in kernel_list:
       self.kernel[key]._deriv(dU, d2U)
 
-    return(super().self_conditional_derivative(y, dU, d2U,
-      calc_cov, self._kernel_index(kernel)))
+    return (super().self_conditional_derivative(y, dU, d2U, calc_cov,
+      self._kernel_index(kernel)))
 
   def conditional_derivative(self, y, t2, calc_cov=False, kernel=None):
     r"""
@@ -453,34 +454,32 @@ class Cov(Spleaf):
 
     n2 = t2.size
     dt2 = t2[1:] - t2[:-1]
-    dU = np.empty((self.n,self.r))
-    dU2 = np.empty((n2,self.r))
+    dU = np.empty((self.n, self.r))
+    dU2 = np.empty((n2, self.r))
     V2 = np.empty((n2, self.r))
-    phi2 = np.empty((n2-1, self.r))
+    phi2 = np.empty((n2 - 1, self.r))
     phi2left = np.empty((n2, self.r))
     phi2right = np.empty((n2, self.r))
 
     ref2left = np.searchsorted(self.t, t2) - 1
     dt2left = t2 - self.t[ref2left]
-    dt2right = self.t[np.minimum(ref2left+1,self.n-1)] - t2
-    dt2left[ref2left==-1] = 0 # useless but avoid overflow warning
-    dt2right[ref2left==self.n-1] = 0 # useless but avoid overflow warning
+    dt2right = self.t[np.minimum(ref2left + 1, self.n - 1)] - t2
+    dt2left[ref2left == -1] = 0  # useless but avoid overflow warning
+    dt2right[ref2left == self.n - 1] = 0  # useless but avoid overflow warning
 
     if calc_cov:
-      d2U2 = np.empty((n2,self.r))
+      d2U2 = np.empty((n2, self.r))
     else:
       d2U2 = None
 
     kernel_list = self.kernel if kernel is None else kernel
     for key in kernel_list:
       self.kernel[key]._deriv(dU)
-      self.kernel[key]._deriv_t2(t2, dt2, dU2, V2, phi2,
-        ref2left, dt2left, dt2right, phi2left, phi2right,
-        d2U2)
+      self.kernel[key]._deriv_t2(t2, dt2, dU2, V2, phi2, ref2left, dt2left,
+        dt2right, phi2left, phi2right, d2U2)
 
-    return(super().conditional_derivative(
-      y, dU, dU2, d2U2, V2, phi2, ref2left, phi2left, phi2right,
-      calc_cov, self._kernel_index(kernel)))
+    return (super().conditional_derivative(y, dU, dU2, d2U2, V2, phi2,
+      ref2left, phi2left, phi2right, calc_cov, self._kernel_index(kernel)))
 
   def eval(self, dt, kernel=None):
     r"""
@@ -507,4 +506,4 @@ class Cov(Spleaf):
 
     if kernel is None:
       kernel = self.kernel
-    return(sum(self.kernel[key].eval(dt) for key in kernel))
+    return (sum(self.kernel[key].eval(dt) for key in kernel))

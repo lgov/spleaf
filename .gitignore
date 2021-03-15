@@ -3,4 +3,5 @@ dist/*
 doc/build/*
 doc/source/classes/*
 */__pycache__/*
+*.egg-info
 other/*

@@ -20,6 +20,7 @@
 from setuptools import setup, Extension
 import numpy.distutils.misc_util
 import os
+
 path = os.path.abspath(os.path.dirname(__file__))
 
 info = {}
@@ -30,8 +31,7 @@ c_ext = Extension('spleaf.libspleaf',
   sources=['spleaf/pywrapspleaf.c', 'spleaf/libspleaf.c'],
   language='c')
 
-setup(
-  name=info['__title__'],
+setup(name=info['__title__'],
   version=info['__version__'],
   author=info['__author__'],
   author_email=info['__author_email__'],
@@ -42,5 +42,4 @@ setup(
   ext_modules=[c_ext],
   include_dirs=numpy.distutils.misc_util.get_numpy_include_dirs(),
   python_requires='>=3.6',
-  install_requires='numpy>=1.16'
-)
+  install_requires='numpy>=1.16')

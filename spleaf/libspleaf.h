@@ -17,126 +17,117 @@
 
 #include <stdlib.h>
 #include <string.h>
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 void spleaf_cholesky(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
   double *A, double *U, double *V, double *phi, double *F,
   // Output
   double *D, double *W, double *G,
-  // Temporary variables (useful for backward propagation of the gradient)
+  // Temporary
   double *S, double *Z);
 
 void spleaf_dotL(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x,
+  double *U, double *W, double *phi, double *G, double *x,
   // Output
   double *y,
-  // Temporary variable (useful for backward propagation of the gradient)
+  // Temporary
   double *f);
 
 void spleaf_solveL(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *y,
+  double *U, double *W, double *phi, double *G, double *y,
   // Output
   double *x,
-  // Temporary variable (useful for backward propagation of the gradient)
+  // Temporary
   double *f);
 
 void spleaf_dotLT(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x,
+  double *U, double *W, double *phi, double *G, double *x,
   // Output
   double *y,
-  // Temporary variable (useful for backward propagation of the gradient)
+  // Temporary
   double *g);
 
 void spleaf_solveLT(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *y,
+  double *U, double *W, double *phi, double *G, double *y,
   // Output
   double *x,
-  // Temporary variable (useful for backward propagation of the gradient)
+  // Temporary
   double *g);
 
 void spleaf_cholesky_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *D, double *U, double *W, double *phi, double *G,
-  double *grad_D, double *grad_Ucho, double *grad_W,
-  double *grad_phicho, double *grad_G,
+  double *D, double *U, double *W, double *phi, double *G, double *grad_D,
+  double *grad_Ucho, double *grad_W, double *grad_phicho, double *grad_G,
   // Output
-  double *grad_A, double *grad_U, double *grad_V,
-  double *grad_phi, double *grad_F,
-  // Temporary variables
+  double *grad_A, double *grad_U, double *grad_V, double *grad_phi,
+  double *grad_F,
+  // Temporary
   double *S, double *Z);
 
 void spleaf_dotL_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x, double *grad_y,
+  double *U, double *W, double *phi, double *G, double *x, double *grad_y,
   // Output
   double *grad_U, double *grad_W, double *grad_phi, double *grad_G,
   double *grad_x,
-  // Temporary variable
+  // Temporary
   double *f);
 
 void spleaf_solveL_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x, double *grad_x,
+  double *U, double *W, double *phi, double *G, double *x, double *grad_x,
   // Output
   double *grad_U, double *grad_W, double *grad_phi, double *grad_G,
   double *grad_y,
-  // Temporary variable
+  // Temporary
   double *f);
 
 void spleaf_dotLT_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x, double *grad_y,
+  double *U, double *W, double *phi, double *G, double *x, double *grad_y,
   // Output
   double *grad_U, double *grad_W, double *grad_phi, double *grad_G,
   double *grad_x,
-  // Temporary variable
+  // Temporary
   double *g);
 
 void spleaf_solveLT_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x, double *grad_x,
+  double *U, double *W, double *phi, double *G, double *x, double *grad_x,
   // Output
   double *grad_U, double *grad_W, double *grad_phi, double *grad_G,
   double *grad_y,
-  // Temporary variable
+  // Temporary
   double *g);
 
 void spleaf_expandsep(
-  // Shapes
+  // Shape
   long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
@@ -144,16 +135,16 @@ void spleaf_expandsep(
   double *K);
 
 void spleaf_expandsepmixt(
-  // Shapes
+  // Shape
   long n1, long n2, long r, long rsi, long *sepindex,
   // Input
-  double *U1, double *V1, double *phi1,
-  double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
+  double *U1, double *V1, double *phi1, double *U2, double *V2, long *ref2left,
+  double *phi2left, double *phi2right,
   // Output
   double *Km);
 
 void spleaf_expandantisep(
-  // Shapes
+  // Shape
   long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
@@ -161,29 +152,26 @@ void spleaf_expandantisep(
   double *K);
 
 void spleaf_dotsep(
-  // Shapes
+  // Shape
   long n, long r, long rsi, long *sepindex,
   // Input
-  double *U, double *V, double *phi,
-  double *x,
+  double *U, double *V, double *phi, double *x,
   // Output
   double *y);
 
 void spleaf_dotsepmixt(
-  // Shapes
+  // Shape
   long n1, long n2, long r, long rsi, long *sepindex,
   // Input
-  double *U1, double *V1, double *phi1,
-  double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
-  double *x,
+  double *U1, double *V1, double *phi1, double *U2, double *V2, long *ref2left,
+  double *phi2left, double *phi2right, double *x,
   // Output
   double *y);
 
 void spleaf_dotantisep(
-  // Shapes
+  // Shape
   long n, long r, long rsi, long *sepindex,
   // Input
-  double *U, double *V, double *phi,
-  double *x,
+  double *U, double *V, double *phi, double *x,
   // Output
   double *y);

@@ -18,13 +18,13 @@
 #include "libspleaf.h"
 
 void spleaf_cholesky(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
   double *A, double *U, double *V, double *phi, double *F,
   // Output
   double *D, double *W, double *G,
-  // Temporary variables (useful for backward propagation of the gradient)
+  // Temporary
   double *S, double *Z)
 {
   // Cholesky decomposition of the (n x n) symmetric S+LEAF
@@ -62,97 +62,99 @@ void spleaf_cholesky(
   //   G is stored in the same way as F.
 
   long i, j, k, s, t;
-  long r2 = r*r;
+  long r2 = r * r;
   double SU, GD;
 
   // Copy A -> D, V -> W, F -> G
-  memcpy(D, A, n*sizeof(double));
-  memcpy(W, V, n*r*sizeof(double));
-  memcpy(G, F, (offsetrow[n-1]+n-1)*sizeof(double));
+  memcpy(D, A, n * sizeof(double));
+  memcpy(W, V, n * r * sizeof(double));
+  memcpy(G, F, (offsetrow[n - 1] + n - 1) * sizeof(double));
 
   // Case i = 0
   // Normalize W_{0,s}
-  for (s=0; s<r; s++) {
+  for (s = 0; s < r; s++) {
     W[s] /= D[0];
   }
   // Initialize S
-  for (s=0; s<r2; s++) {
+  for (s = 0; s < r2; s++) {
     S[s] = 0.0;
   }
 
-  for (i=1; i<n; i++) {
+  for (i = 1; i < n; i++) {
     // Initialize Z
-    for (s=0; s<r; s++) {
-      Z[r*(offsetrow[i]+2*i-b[i])+s] = 0.0;
+    for (s = 0; s < r; s++) {
+      Z[r * (offsetrow[i] + 2 * i - b[i]) + s] = 0.0;
     }
 
     // Compute G_{i,j} (without normalizing by D_j yet)
     // Case j = i-b[i] -> nothing to do
     // Case j > i-b[i]
-    for (j=i-b[i]+1; j<i; j++) {
+    for (j = i - b[i] + 1; j < i; j++) {
       // Purely leaf terms
-      for (k=MAX(i-b[i], j-b[j]); k<j; k++) {
+      for (k = MAX(i - b[i], j - b[j]); k < j; k++) {
         // Note that G_{i,k} has not been normalized by D_k
         // but G_{j,k} is already normalized by D_k
-        G[offsetrow[i]+j] -= G[offsetrow[i]+k] * G[offsetrow[j]+k];
+        G[offsetrow[i] + j] -= G[offsetrow[i] + k] * G[offsetrow[j] + k];
       }
       // Mixed terms
-      for (s=0; s<r; s++) {
+      for (s = 0; s < r; s++) {
         // Update Z
         // Note that G_{i,j-1} has not been normalized by D_{j-1} yet
-        Z[r*(offsetrow[i]+i+j)+s] = phi[r*(j-1)+s] *
-          (Z[r*(offsetrow[i]+i+j-1)+s] + G[offsetrow[i]+j-1] * W[r*(j-1)+s]);
-        G[offsetrow[i]+j] -=  U[r*j+s] * Z[r*(offsetrow[i]+i+j)+s];
+        Z[r * (offsetrow[i] + i + j) + s] = phi[r * (j - 1) + s] *
+          (Z[r * (offsetrow[i] + i + j - 1) + s] +
+           G[offsetrow[i] + j - 1] * W[r * (j - 1) + s]);
+        G[offsetrow[i] + j] -= U[r * j + s] * Z[r * (offsetrow[i] + i + j) + s];
       }
     }
 
     // Compute D_i, W_{i,s} (without normalizing by D_i yet)
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // Compute Z_{i,i,s}
       // Note that G_{i,i-1} has not been normalized by D_{i-1} yet
       if (b[i] > 0) {
-        Z[r*(offsetrow[i]+2*i)+s] = phi[r*(i-1)+s] *
-          (Z[r*(offsetrow[i]+2*i-1)+s] + G[offsetrow[i]+i-1] * W[r*(i-1)+s]);
+        Z[r * (offsetrow[i] + 2 * i) + s] = phi[r * (i - 1) + s] *
+          (Z[r * (offsetrow[i] + 2 * i - 1) + s] +
+           G[offsetrow[i] + i - 1] * W[r * (i - 1) + s]);
       }
       // Compute S_{i,s,.} U_{i,.}
       SU = 0.0;
-      for (t=0; t<r; t++) {
+      for (t = 0; t < r; t++) {
         // Update S
-        S[r2*i+r*s+t] = phi[r*(i-1)+s] * phi[r*(i-1)+t] *
-          (S[r2*(i-1)+r*s+t] + W[r*(i-1)+s] * D[i-1] * W[r*(i-1)+t]);
-        SU += S[r2*i+r*s+t] * U[r*i+t];
+        S[r2 * i + r * s + t] = phi[r * (i - 1) + s] * phi[r * (i - 1) + t] *
+          (S[r2 * (i - 1) + r * s + t] +
+           W[r * (i - 1) + s] * D[i - 1] * W[r * (i - 1) + t]);
+        SU += S[r2 * i + r * s + t] * U[r * i + t];
       }
       // Compute D_i (omiting purely leaf terms)
-      D[i] -= U[r*i+s]*(SU + 2.0*Z[r*(offsetrow[i]+2*i)+s]);
+      D[i] -= U[r * i + s] * (SU + 2.0 * Z[r * (offsetrow[i] + 2 * i) + s]);
       // Compute W_{i,s}
-      W[r*i+s] -= SU + Z[r*(offsetrow[i]+2*i)+s];
+      W[r * i + s] -= SU + Z[r * (offsetrow[i] + 2 * i) + s];
     }
 
     // Normalize G_{i,j} and compute purely leaf terms in D_i
-    for (j=i-b[i]; j<i; j++) {
+    for (j = i - b[i]; j < i; j++) {
       // Normalize G_{i,j} (+ store non-normalized value)
-      GD = G[offsetrow[i]+j];
-      G[offsetrow[i]+j] /= D[j];
+      GD = G[offsetrow[i] + j];
+      G[offsetrow[i] + j] /= D[j];
       // Purely leaf terms in D_i
-      D[i] -= GD * G[offsetrow[i]+j];
+      D[i] -= GD * G[offsetrow[i] + j];
     }
 
     // Normalize W_{i,s}
-    for (s=0; s<r; s++) {
-      W[r*i+s] /= D[i];
+    for (s = 0; s < r; s++) {
+      W[r * i + s] /= D[i];
     }
   }
 }
 
 void spleaf_dotL(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x,
+  double *U, double *W, double *phi, double *G, double *x,
   // Output
   double *y,
-  // Temporary variable (useful for backward propagation of the gradient)
+  // Temporary
   double *f)
 {
   // Compute y = L x,
@@ -162,37 +164,37 @@ void spleaf_dotL(
   long i, j, s;
 
   // Copy x -> y
-  memcpy(y, x, n*sizeof(double));
+  memcpy(y, x, n * sizeof(double));
 
   // Initialize f
-  for (s=0; s<r; s++) {
+  for (s = 0; s < r; s++) {
     f[s] = 0.0;
   }
 
   // Compute y = L x
-  for (i=1; i<n; i++) {
+  for (i = 1; i < n; i++) {
     // Semiseparable terms
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // Update f
-      f[r*i+s] = phi[r*(i-1)+s] * (f[r*(i-1)+s] + W[r*(i-1)+s] * x[i-1]);
-      y[i] += U[r*i+s] * f[r*i+s];
+      f[r * i + s] = phi[r * (i - 1) + s] *
+        (f[r * (i - 1) + s] + W[r * (i - 1) + s] * x[i - 1]);
+      y[i] += U[r * i + s] * f[r * i + s];
     }
     // Leaf terms
-    for (j=i-b[i]; j<i; j++) {
-      y[i] += G[offsetrow[i]+j] * x[j];
+    for (j = i - b[i]; j < i; j++) {
+      y[i] += G[offsetrow[i] + j] * x[j];
     }
   }
 }
 
 void spleaf_solveL(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *y,
+  double *U, double *W, double *phi, double *G, double *y,
   // Output
   double *x,
-  // Temporary variable (useful for backward propagation of the gradient)
+  // Temporary
   double *f)
 {
   // Solve for x = L^-1 y,
@@ -202,37 +204,37 @@ void spleaf_solveL(
   long i, j, s;
 
   // Copy y -> x
-  memcpy(x, y, n*sizeof(double));
+  memcpy(x, y, n * sizeof(double));
 
   // Initialize f
-  for (s=0; s<r; s++) {
+  for (s = 0; s < r; s++) {
     f[s] = 0.0;
   }
 
   // Solve for x = L^-1 y
-  for (i=1; i<n; i++) {
+  for (i = 1; i < n; i++) {
     // Semiseparable terms
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // Update f
-      f[r*i+s] = phi[r*(i-1)+s] * (f[r*(i-1)+s] + W[r*(i-1)+s] * x[i-1]);
-      x[i] -= U[r*i+s] * f[r*i+s];
+      f[r * i + s] = phi[r * (i - 1) + s] *
+        (f[r * (i - 1) + s] + W[r * (i - 1) + s] * x[i - 1]);
+      x[i] -= U[r * i + s] * f[r * i + s];
     }
     // Leaf terms
-    for (j=i-b[i]; j<i; j++) {
-      x[i] -= G[offsetrow[i]+j] * x[j];
+    for (j = i - b[i]; j < i; j++) {
+      x[i] -= G[offsetrow[i] + j] * x[j];
     }
   }
 }
 
 void spleaf_dotLT(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x,
+  double *U, double *W, double *phi, double *G, double *x,
   // Output
   double *y,
-  // Temporary variable (useful for backward propagation of the gradient)
+  // Temporary
   double *g)
 {
   // Compute y = L^T x,
@@ -242,42 +244,42 @@ void spleaf_dotLT(
   long i, j, s;
 
   // Copy x -> y
-  memcpy(y, x, n*sizeof(double));
+  memcpy(y, x, n * sizeof(double));
 
   // Initialize g
-  for (s=0; s<r; s++) {
-    g[(n-1)*r+s] = 0.0;
+  for (s = 0; s < r; s++) {
+    g[(n - 1) * r + s] = 0.0;
   }
 
   // Leaf terms for n-1
-  for (j=n-1-b[n-1]; j<n-1; j++) {
-    y[j] += G[offsetrow[n-1]+j] * x[n-1];
+  for (j = n - 1 - b[n - 1]; j < n - 1; j++) {
+    y[j] += G[offsetrow[n - 1] + j] * x[n - 1];
   }
 
   // Loop for i < n-1
-  for (i=n-2; i>=0; i--) {
+  for (i = n - 2; i >= 0; i--) {
     // Semiseparable terms
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // Update g
-      g[r*i+s] = phi[r*i+s] * (g[r*(i+1)+s] + U[r*(i+1)+s] * x[i+1]);
-      y[i] += W[r*i+s] * g[r*i+s];
+      g[r * i + s] =
+        phi[r * i + s] * (g[r * (i + 1) + s] + U[r * (i + 1) + s] * x[i + 1]);
+      y[i] += W[r * i + s] * g[r * i + s];
     }
     // Leaf terms
-    for (j=i-b[i]; j<i; j++) {
-      y[j] += G[offsetrow[i]+j] * x[i];
+    for (j = i - b[i]; j < i; j++) {
+      y[j] += G[offsetrow[i] + j] * x[i];
     }
   }
 }
 
 void spleaf_solveLT(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *y,
+  double *U, double *W, double *phi, double *G, double *y,
   // Output
   double *x,
-  // Temporary variable (useful for backward propagation of the gradient)
+  // Temporary
   double *g)
 {
   // Solve for x = L^-T y,
@@ -287,109 +289,110 @@ void spleaf_solveLT(
   long i, j, s;
 
   // Copy y -> x
-  memcpy(x, y, n*sizeof(double));
+  memcpy(x, y, n * sizeof(double));
 
   // Initialize g
-  for (s=0; s<r; s++) {
-    g[(n-1)*r+s] = 0.0;
+  for (s = 0; s < r; s++) {
+    g[(n - 1) * r + s] = 0.0;
   }
 
   // Leaf terms for n-1
-  for (j=n-1-b[n-1]; j<n-1; j++) {
-    x[j] -= G[offsetrow[n-1]+j] * x[n-1];
+  for (j = n - 1 - b[n - 1]; j < n - 1; j++) {
+    x[j] -= G[offsetrow[n - 1] + j] * x[n - 1];
   }
 
   // Loop for i < n-1
-  for (i=n-2; i>=0; i--) {
+  for (i = n - 2; i >= 0; i--) {
     // Semiseparable terms
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // Update g
-      g[r*i+s] = phi[r*i+s] * (g[r*(i+1)+s] + U[r*(i+1)+s] * x[i+1]);
-      x[i] -= W[r*i+s] * g[r*i+s];
+      g[r * i + s] =
+        phi[r * i + s] * (g[r * (i + 1) + s] + U[r * (i + 1) + s] * x[i + 1]);
+      x[i] -= W[r * i + s] * g[r * i + s];
     }
     // Leaf terms
-    for (j=i-b[i]; j<i; j++) {
-      x[j] -= G[offsetrow[i]+j] * x[i];
+    for (j = i - b[i]; j < i; j++) {
+      x[j] -= G[offsetrow[i] + j] * x[i];
     }
   }
 }
 
 void spleaf_cholesky_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *D, double *U, double *W, double *phi, double *G,
-  double *grad_D, double *grad_Ucho, double *grad_W,
-  double *grad_phicho, double *grad_G,
+  double *D, double *U, double *W, double *phi, double *G, double *grad_D,
+  double *grad_Ucho, double *grad_W, double *grad_phicho, double *grad_G,
   // Output
-  double *grad_A, double *grad_U, double *grad_V,
-  double *grad_phi, double *grad_F,
-  // Temporary variables
+  double *grad_A, double *grad_U, double *grad_V, double *grad_phi,
+  double *grad_F,
+  // Temporary
   double *S, double *Z)
 {
   // Backward propagation of the gradient for spleaf_cholesky.
 
   long i, j, k, s, t;
-  long r2 = r*r;
+  long r2 = r * r;
   double SU;
   double grad_SU, grad_GD;
   double *grad_S, *grad_Z;
   double grad_tmp;
 
-  grad_S = (double *) malloc(r2*sizeof(double));
-  grad_Z = (double *) malloc(r*sizeof(double));
+  grad_S = (double *)malloc(r2 * sizeof(double));
+  grad_Z = (double *)malloc(r * sizeof(double));
 
   // Copy grad_D -> grad_A, grad_Ucho -> grad_U, grad_W -> grad_V,
   // grad_phicho -> grad_phi, grad_G -> grad_F
-  memcpy(grad_A, grad_D, n*sizeof(double));
-  memcpy(grad_U, grad_Ucho, n*r*sizeof(double));
-  memcpy(grad_V, grad_W, n*r*sizeof(double));
-  memcpy(grad_phi, grad_phicho, (n-1)*r*sizeof(double));
-  memcpy(grad_F, grad_G, (offsetrow[n-1]+n-1)*sizeof(double));
+  memcpy(grad_A, grad_D, n * sizeof(double));
+  memcpy(grad_U, grad_Ucho, n * r * sizeof(double));
+  memcpy(grad_V, grad_W, n * r * sizeof(double));
+  memcpy(grad_phi, grad_phicho, (n - 1) * r * sizeof(double));
+  memcpy(grad_F, grad_G, (offsetrow[n - 1] + n - 1) * sizeof(double));
 
   // Initialize grad_S
-  for (s=0; s<r2; s++) {
+  for (s = 0; s < r2; s++) {
     grad_S[s] = 0.0;
   }
 
   // Reversed main loop
-  for (i=n-1; i>0; i--) {
-    for (s=0; s<r; s++) {
+  for (i = n - 1; i > 0; i--) {
+    for (s = 0; s < r; s++) {
       // W[r*i+s] /= D[i];
-      grad_V[r*i+s] /= D[i];
-      grad_A[i] -= W[r*i+s] * grad_V[r*i+s];
+      grad_V[r * i + s] /= D[i];
+      grad_A[i] -= W[r * i + s] * grad_V[r * i + s];
     }
 
-    for (j=i-b[i]; j<i; j++) {
+    for (j = i - b[i]; j < i; j++) {
       // D[i] -= GD * G[offsetrow[i]+j];
       // G[offsetrow[i]+j] /= D[j];
-      grad_GD = -G[offsetrow[i]+j] * grad_A[i];
-      grad_F[offsetrow[i]+j] /= D[j];
-      grad_F[offsetrow[i]+j] += grad_GD;
-      grad_A[j] -= G[offsetrow[i]+j] * grad_F[offsetrow[i]+j];
+      grad_GD = -G[offsetrow[i] + j] * grad_A[i];
+      grad_F[offsetrow[i] + j] /= D[j];
+      grad_F[offsetrow[i] + j] += grad_GD;
+      grad_A[j] -= G[offsetrow[i] + j] * grad_F[offsetrow[i] + j];
       // GD = G[offsetrow[i]+j];
-      grad_F[offsetrow[i]+j] += grad_GD;
+      grad_F[offsetrow[i] + j] += grad_GD;
     }
 
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // Precompute SU
       SU = 0.0;
-      for (t=0; t<r; t++) {
-        SU += S[r2*i+r*s+t] * U[r*i+t];
+      for (t = 0; t < r; t++) {
+        SU += S[r2 * i + r * s + t] * U[r * i + t];
       }
       // W[r*i+s] -= SU + Z[r*(offsetrow[i]+2*i)+s];
-      grad_SU = -grad_V[r*i+s];
-      grad_Z[s] = -grad_V[r*i+s];
+      grad_SU = -grad_V[r * i + s];
+      grad_Z[s] = -grad_V[r * i + s];
       // D[i] -= U[r*i+s]*(SU + 2.0*Z[r*(offsetrow[i]+2*i)+s]);
-      grad_U[r*i+s] -= (SU + 2.0*Z[r*(offsetrow[i]+2*i)+s]) * grad_A[i];
-      grad_SU -= U[r*i+s] * grad_A[i];
-      grad_Z[s] -= 2.0*U[r*i+s] * grad_A[i];
-      for (t=0; t<r; t++) {
+      grad_U[r * i + s] -=
+        (SU + 2.0 * Z[r * (offsetrow[i] + 2 * i) + s]) * grad_A[i];
+      grad_SU -= U[r * i + s] * grad_A[i];
+      grad_Z[s] -= 2.0 * U[r * i + s] * grad_A[i];
+      for (t = 0; t < r; t++) {
         // SU += S[r2*i+r*s+t] * U[r*i+t];
-        grad_S[r*s+t] += U[r*i+t] * grad_SU;
-        grad_U[r*i+t] += S[r2*i+r*s+t] * grad_SU;
+        grad_S[r * s + t] += U[r * i + t] * grad_SU;
+        grad_U[r * i + t] += S[r2 * i + r * s + t] * grad_SU;
         // S[r2*i+r*s+t] = phi[r*(i-1)+s] * phi[r*(i-1)+t] *
-          // (S[r2*(i-1)+r*s+t] + W[r*(i-1)+s] * D[i-1] * W[r*(i-1)+t]);
+        // (S[r2*(i-1)+r*s+t] + W[r*(i-1)+s] * D[i-1] * W[r*(i-1)+t]);
         // Let us decompose it:
         // S[r2*i+r*s+t] *= phi[r*(i-1)+s] * phi[r*(i-1)+t];
         // We could do:
@@ -397,16 +400,20 @@ void spleaf_cholesky_back(
         // grad_phi[r*(i-1)+t] += S[r2*i+r*s+t]/phi[r*(i-1)+t] * grad_S[r*s+t];
         // But unstable if phi << 1
         // Better to do:
-        grad_tmp = (S[r2*(i-1)+r*s+t] +
-          W[r*(i-1)+s] * D[i-1] * W[r*(i-1)+t]) * grad_S[r*s+t];
-        grad_phi[r*(i-1)+s] += phi[r*(i-1)+t] * grad_tmp;
-        grad_phi[r*(i-1)+t] += phi[r*(i-1)+s] * grad_tmp;
-        grad_S[r*s+t] *= phi[r*(i-1)+s] * phi[r*(i-1)+t];
+        grad_tmp = (S[r2 * (i - 1) + r * s + t] +
+                    W[r * (i - 1) + s] * D[i - 1] * W[r * (i - 1) + t]) *
+          grad_S[r * s + t];
+        grad_phi[r * (i - 1) + s] += phi[r * (i - 1) + t] * grad_tmp;
+        grad_phi[r * (i - 1) + t] += phi[r * (i - 1) + s] * grad_tmp;
+        grad_S[r * s + t] *= phi[r * (i - 1) + s] * phi[r * (i - 1) + t];
         // S[r2*i+r*s+t] = S[r2*(i-1)+r*s+t] +
         //   W[r*(i-1)+s] * D[i-1] * W[r*(i-1)+t];
-        grad_V[r*(i-1)+s] += D[i-1] * W[r*(i-1)+t] * grad_S[r*s+t];
-        grad_A[i-1] += W[r*(i-1)+s] * W[r*(i-1)+t] * grad_S[r*s+t];
-        grad_V[r*(i-1)+t] += W[r*(i-1)+s] * D[i-1] * grad_S[r*s+t];
+        grad_V[r * (i - 1) + s] +=
+          D[i - 1] * W[r * (i - 1) + t] * grad_S[r * s + t];
+        grad_A[i - 1] +=
+          W[r * (i - 1) + s] * W[r * (i - 1) + t] * grad_S[r * s + t];
+        grad_V[r * (i - 1) + t] +=
+          W[r * (i - 1) + s] * D[i - 1] * grad_S[r * s + t];
       }
       if (b[i] > 0) {
         // Z[r*(offsetrow[i]+2*i)+s] = phi[r*(i-1)+s] *
@@ -419,21 +426,25 @@ void spleaf_cholesky_back(
         //   grad_Z[s];
         // But unstable if phi << 1
         // Better to do:
-        grad_phi[r*(i-1)+s] += (Z[r*(offsetrow[i]+2*i-1)+s] +
-          G[offsetrow[i]+i-1]*D[i-1] * W[r*(i-1)+s]) * grad_Z[s];
-        grad_Z[s] *= phi[r*(i-1)+s];
+        grad_phi[r * (i - 1) + s] +=
+          (Z[r * (offsetrow[i] + 2 * i - 1) + s] +
+           G[offsetrow[i] + i - 1] * D[i - 1] * W[r * (i - 1) + s]) *
+          grad_Z[s];
+        grad_Z[s] *= phi[r * (i - 1) + s];
         // Z[r*(offsetrow[i]+2*i)+s] = Z[r*(offsetrow[i]+2*i-1)+s] +
         //   G[offsetrow[i]+i-1] * W[r*(i-1)+s];
-        grad_F[offsetrow[i]+i-1] += W[r*(i-1)+s] * grad_Z[s];
-        grad_V[r*(i-1)+s] += G[offsetrow[i]+i-1]*D[i-1] * grad_Z[s];
+        grad_F[offsetrow[i] + i - 1] += W[r * (i - 1) + s] * grad_Z[s];
+        grad_V[r * (i - 1) + s] +=
+          G[offsetrow[i] + i - 1] * D[i - 1] * grad_Z[s];
       }
     }
 
-    for (j=i-1; j>i-b[i]; j--) {
-      for (s=0; s<r; s++) {
+    for (j = i - 1; j > i - b[i]; j--) {
+      for (s = 0; s < r; s++) {
         // G[offsetrow[i]+j] -=  U[r*j+s] * Z[r*(offsetrow[i]+i+j)+s];
-        grad_Z[s] -= U[r*j+s] * grad_F[offsetrow[i]+j];
-        grad_U[r*j+s] -= Z[r*(offsetrow[i]+i+j)+s] * grad_F[offsetrow[i]+j];
+        grad_Z[s] -= U[r * j + s] * grad_F[offsetrow[i] + j];
+        grad_U[r * j + s] -=
+          Z[r * (offsetrow[i] + i + j) + s] * grad_F[offsetrow[i] + j];
         // Z[r*(offsetrow[i]+i+j)+s] = phi[r*(j-1)+s] *
         //   (Z[r*(offsetrow[i]+i+j-1)+s] +
         //    G[offsetrow[i]+j-1] * W[r*(j-1)+s]);
@@ -444,26 +455,30 @@ void spleaf_cholesky_back(
         //   grad_Z[s];
         // But unstable if phi << 1
         // Better to do:
-        grad_phi[r*(j-1)+s] += (Z[r*(offsetrow[i]+i+j-1)+s] +
-          G[offsetrow[i]+j-1]*D[j-1] * W[r*(j-1)+s]) * grad_Z[s];
-        grad_Z[s] *= phi[r*(j-1)+s];
+        grad_phi[r * (j - 1) + s] +=
+          (Z[r * (offsetrow[i] + i + j - 1) + s] +
+           G[offsetrow[i] + j - 1] * D[j - 1] * W[r * (j - 1) + s]) *
+          grad_Z[s];
+        grad_Z[s] *= phi[r * (j - 1) + s];
         // Z[r*(offsetrow[i]+i+j)+s] = Z[r*(offsetrow[i]+i+j-1)+s] +
         //   G[offsetrow[i]+j-1] * W[r*(j-1)+s];
-        grad_F[offsetrow[i]+j-1] += W[r*(j-1)+s] * grad_Z[s];
-        grad_V[r*(j-1)+s] += G[offsetrow[i]+j-1]*D[j-1] * grad_Z[s];
+        grad_F[offsetrow[i] + j - 1] += W[r * (j - 1) + s] * grad_Z[s];
+        grad_V[r * (j - 1) + s] +=
+          G[offsetrow[i] + j - 1] * D[j - 1] * grad_Z[s];
       }
 
-      for (k=j-1; k>=MAX(i-b[i], j-b[j]); k--) {
+      for (k = j - 1; k >= MAX(i - b[i], j - b[j]); k--) {
         // G[offsetrow[i]+j] -= G[offsetrow[i]+k] * G[offsetrow[j]+k];
-        grad_F[offsetrow[i]+k] -= G[offsetrow[j]+k] * grad_F[offsetrow[i]+j];
-        grad_F[offsetrow[j]+k] -= G[offsetrow[i]+k]*D[k] *
-          grad_F[offsetrow[i]+j];
+        grad_F[offsetrow[i] + k] -=
+          G[offsetrow[j] + k] * grad_F[offsetrow[i] + j];
+        grad_F[offsetrow[j] + k] -=
+          G[offsetrow[i] + k] * D[k] * grad_F[offsetrow[i] + j];
       }
     }
   }
 
   // i = 0
-  for (s=0; s<r; s++) {
+  for (s = 0; s < r; s++) {
     // W[s] /= D[0];
     grad_V[s] /= D[0];
     grad_A[0] -= W[s] * grad_V[s];
@@ -474,15 +489,14 @@ void spleaf_cholesky_back(
 }
 
 void spleaf_dotL_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x, double *grad_y,
+  double *U, double *W, double *phi, double *G, double *x, double *grad_y,
   // Output
   double *grad_U, double *grad_W, double *grad_phi, double *grad_G,
   double *grad_x,
-  // Temporary variable
+  // Temporary
   double *f)
 {
   // Backward propagation of the gradient for spleaf_dotL.
@@ -490,27 +504,27 @@ void spleaf_dotL_back(
   long i, j, s;
   double *grad_f;
 
-  grad_f = (double *) malloc(r*sizeof(double));
+  grad_f = (double *)malloc(r * sizeof(double));
 
   // Copy grad_y -> grad_x
-  memcpy(grad_x, grad_y, n*sizeof(double));
+  memcpy(grad_x, grad_y, n * sizeof(double));
 
   // Initialize grad_f
-  for (s=0; s<r; s++) {
+  for (s = 0; s < r; s++) {
     grad_f[s] = 0.0;
   }
 
   // Reverse main loop
-  for (i=n-1; i>0; i--) {
-    for (j=i-b[i]; j<i; j++) {
+  for (i = n - 1; i > 0; i--) {
+    for (j = i - b[i]; j < i; j++) {
       // y[i] += G[offsetrow[i]+j] * x[j];
-      grad_G[offsetrow[i]+j] += x[j] * grad_y[i];
-      grad_x[j] += G[offsetrow[i]+j] * grad_y[i];
+      grad_G[offsetrow[i] + j] += x[j] * grad_y[i];
+      grad_x[j] += G[offsetrow[i] + j] * grad_y[i];
     }
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // y[i] += U[r*i+s] * f[r*i+s];
-      grad_U[r*i+s] += f[r*i+s] * grad_y[i];
-      grad_f[s] += U[r*i+s] * grad_y[i];
+      grad_U[r * i + s] += f[r * i + s] * grad_y[i];
+      grad_f[s] += U[r * i + s] * grad_y[i];
       // f[r*i+s] = phi[r*(i-1)+s] * (f[r*(i-1)+s] + W[r*(i-1)+s] * x[i-1]);
       // Let us decompose it:
       // f[r*i+s] *= phi[r*(i-1)+s];
@@ -518,12 +532,12 @@ void spleaf_dotL_back(
       // grad_phi[r*(i-1)+s] += f[r*i+s]/phi[r*(i-1)+s] * grad_f[s];
       // But unstable if phi << 1
       // Better to do:
-      grad_phi[r*(i-1)+s] += (f[r*(i-1)+s] + W[r*(i-1)+s] * x[i-1]) *
-        grad_f[s];
-      grad_f[s] *= phi[r*(i-1)+s];
+      grad_phi[r * (i - 1) + s] +=
+        (f[r * (i - 1) + s] + W[r * (i - 1) + s] * x[i - 1]) * grad_f[s];
+      grad_f[s] *= phi[r * (i - 1) + s];
       // f[r*i+s] = f[r*(i-1)+s] + W[r*(i-1)+s] * x[i-1];
-      grad_W[r*(i-1)+s] += x[i-1] * grad_f[s];
-      grad_x[i-1] += W[r*(i-1)+s] * grad_f[s];
+      grad_W[r * (i - 1) + s] += x[i - 1] * grad_f[s];
+      grad_x[i - 1] += W[r * (i - 1) + s] * grad_f[s];
     }
   }
 
@@ -531,15 +545,14 @@ void spleaf_dotL_back(
 }
 
 void spleaf_solveL_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x, double *grad_x,
+  double *U, double *W, double *phi, double *G, double *x, double *grad_x,
   // Output
   double *grad_U, double *grad_W, double *grad_phi, double *grad_G,
   double *grad_y,
-  // Temporary variable
+  // Temporary
   double *f)
 {
   // Backward propagation of the gradient for spleaf_solveL.
@@ -547,27 +560,27 @@ void spleaf_solveL_back(
   long i, j, s;
   double *grad_f;
 
-  grad_f = (double *) malloc(r*sizeof(double));
+  grad_f = (double *)malloc(r * sizeof(double));
 
   // Copy grad_x -> grad_y
-  memcpy(grad_y, grad_x, n*sizeof(double));
+  memcpy(grad_y, grad_x, n * sizeof(double));
 
   // Initialize grad_f
-  for (s=0; s<r; s++) {
+  for (s = 0; s < r; s++) {
     grad_f[s] = 0.0;
   }
 
   // Reverse main loop
-  for (i=n-1; i>0; i--) {
-    for (j=i-1; j>=i-b[i]; j--) {
+  for (i = n - 1; i > 0; i--) {
+    for (j = i - 1; j >= i - b[i]; j--) {
       // x[i] -= G[offsetrow[i]+j] * x[j];
-      grad_G[offsetrow[i]+j] -= x[j] * grad_y[i];
-      grad_y[j] -= G[offsetrow[i]+j] * grad_y[i];
+      grad_G[offsetrow[i] + j] -= x[j] * grad_y[i];
+      grad_y[j] -= G[offsetrow[i] + j] * grad_y[i];
     }
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // x[i] -= U[r*i+s] * f[r*i+s];
-      grad_U[r*i+s] -= f[r*i+s] * grad_y[i];
-      grad_f[s] -= U[r*i+s] * grad_y[i];
+      grad_U[r * i + s] -= f[r * i + s] * grad_y[i];
+      grad_f[s] -= U[r * i + s] * grad_y[i];
       // f[r*i+s] = phi[r*(i-1)+s] * (f[r*(i-1)+s] + W[r*(i-1)+s] * x[i-1]);
       // Let us decompose it:
       // f[r*i+s] *= phi[r*(i-1)+s];
@@ -575,12 +588,12 @@ void spleaf_solveL_back(
       // grad_phi[r*(i-1)+s] += f[r*i+s]/phi[r*(i-1)+s] * grad_f[s];
       // But unstable if phi << 1
       // Better to do:
-      grad_phi[r*(i-1)+s] += (f[r*(i-1)+s] + W[r*(i-1)+s] * x[i-1]) *
-        grad_f[s];
-      grad_f[s] *= phi[r*(i-1)+s];
+      grad_phi[r * (i - 1) + s] +=
+        (f[r * (i - 1) + s] + W[r * (i - 1) + s] * x[i - 1]) * grad_f[s];
+      grad_f[s] *= phi[r * (i - 1) + s];
       // f[r*i+s] = f[r*(i-1)+s] + W[r*(i-1)+s] * x[i-1];
-      grad_W[r*(i-1)+s] += x[i-1] * grad_f[s];
-      grad_y[i-1] += W[r*(i-1)+s] * grad_f[s];
+      grad_W[r * (i - 1) + s] += x[i - 1] * grad_f[s];
+      grad_y[i - 1] += W[r * (i - 1) + s] * grad_f[s];
     }
   }
 
@@ -588,15 +601,14 @@ void spleaf_solveL_back(
 }
 
 void spleaf_dotLT_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x, double *grad_y,
+  double *U, double *W, double *phi, double *G, double *x, double *grad_y,
   // Output
   double *grad_U, double *grad_W, double *grad_phi, double *grad_G,
   double *grad_x,
-  // Temporary variable
+  // Temporary
   double *g)
 {
   // Backward propagation of the gradient for spleaf_dotLT.
@@ -604,27 +616,27 @@ void spleaf_dotLT_back(
   long i, j, s;
   double *grad_g;
 
-  grad_g = (double *) malloc(r*sizeof(double));
+  grad_g = (double *)malloc(r * sizeof(double));
 
   // Copy grad_y -> grad_x
-  memcpy(grad_x, grad_y, n*sizeof(double));
+  memcpy(grad_x, grad_y, n * sizeof(double));
 
   // Initialize grad_g
-  for (s=0; s<r; s++) {
+  for (s = 0; s < r; s++) {
     grad_g[s] = 0.0;
   }
 
   // Reverse main loop
-  for (i=0; i<n-1; i++) {
-    for (j=i-b[i]; j<i; j++) {
+  for (i = 0; i < n - 1; i++) {
+    for (j = i - b[i]; j < i; j++) {
       // y[j] += G[offsetrow[i]+j] * x[i];
-      grad_G[offsetrow[i]+j] += x[i] * grad_y[j];
-      grad_x[i] += G[offsetrow[i]+j] * grad_y[j];
+      grad_G[offsetrow[i] + j] += x[i] * grad_y[j];
+      grad_x[i] += G[offsetrow[i] + j] * grad_y[j];
     }
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // y[i] += W[r*i+s] * g[r*i+s];
-      grad_W[r*i+s] += g[r*i+s] * grad_y[i];
-      grad_g[s] += W[r*i+s] * grad_y[i];
+      grad_W[r * i + s] += g[r * i + s] * grad_y[i];
+      grad_g[s] += W[r * i + s] * grad_y[i];
 
       // g[r*i+s] = phi[r*i+s] * (g[r*(i+1)+s] + U[r*(i+1)+s] * x[i+1]);
       // Let us decompose it:
@@ -633,35 +645,34 @@ void spleaf_dotLT_back(
       // grad_phi[r*i+s] += g[r*i+s]/phi[r*i+s] * grad_g[s];
       // But unstable if phi << 1
       // Better to do:
-      grad_phi[r*i+s] += (g[r*(i+1)+s] + U[r*(i+1)+s] * x[i+1]) *
-        grad_g[s];
-      grad_g[s] *= phi[r*i+s];
+      grad_phi[r * i + s] +=
+        (g[r * (i + 1) + s] + U[r * (i + 1) + s] * x[i + 1]) * grad_g[s];
+      grad_g[s] *= phi[r * i + s];
       // g[r*i+s] = g[r*(i+1)+s] + U[r*(i+1)+s] * x[i+1];
-      grad_U[r*(i+1)+s] += x[i+1] * grad_g[s];
-      grad_x[i+1] += U[r*(i+1)+s] * grad_g[s];
+      grad_U[r * (i + 1) + s] += x[i + 1] * grad_g[s];
+      grad_x[i + 1] += U[r * (i + 1) + s] * grad_g[s];
     }
   }
 
-    // Leaf terms for n-1
-  for (j=n-1-b[n-1]; j<n-1; j++) {
+  // Leaf terms for n-1
+  for (j = n - 1 - b[n - 1]; j < n - 1; j++) {
     // y[j] += G[offsetrow[n-1]+j] * x[n-1];
-    grad_G[offsetrow[n-1]+j] += x[n-1] * grad_y[j];
-    grad_x[n-1] += G[offsetrow[n-1]+j] * grad_y[j];
+    grad_G[offsetrow[n - 1] + j] += x[n - 1] * grad_y[j];
+    grad_x[n - 1] += G[offsetrow[n - 1] + j] * grad_y[j];
   }
 
   free(grad_g);
 }
 
 void spleaf_solveLT_back(
-  // Shapes
+  // Shape
   long n, long r, long *offsetrow, long *b,
   // Input
-  double *U, double *W, double *phi, double *G,
-  double *x, double *grad_x,
+  double *U, double *W, double *phi, double *G, double *x, double *grad_x,
   // Output
   double *grad_U, double *grad_W, double *grad_phi, double *grad_G,
   double *grad_y,
-  // Temporary variable
+  // Temporary
   double *g)
 {
   // Backward propagation of the gradient for spleaf_solveLT.
@@ -669,27 +680,27 @@ void spleaf_solveLT_back(
   long i, j, s;
   double *grad_g;
 
-  grad_g = (double *) malloc(r*sizeof(double));
+  grad_g = (double *)malloc(r * sizeof(double));
 
   // Copy grad_x -> grad_y
-  memcpy(grad_y, grad_x, n*sizeof(double));
+  memcpy(grad_y, grad_x, n * sizeof(double));
 
   // Initialize grad_g
-  for (s=0; s<r; s++) {
+  for (s = 0; s < r; s++) {
     grad_g[s] = 0.0;
   }
 
   // Reverse main loop
-  for (i=0; i<n-1; i++) {
-    for (j=i-b[i]; j<i; j++) {
+  for (i = 0; i < n - 1; i++) {
+    for (j = i - b[i]; j < i; j++) {
       // x[j] -= G[offsetrow[i]+j] * x[i];
-      grad_G[offsetrow[i]+j] -= x[i] * grad_y[j];
-      grad_y[i] -= G[offsetrow[i]+j] * grad_y[j];
+      grad_G[offsetrow[i] + j] -= x[i] * grad_y[j];
+      grad_y[i] -= G[offsetrow[i] + j] * grad_y[j];
     }
-    for (s=0; s<r; s++) {
+    for (s = 0; s < r; s++) {
       // x[i] -= W[r*i+s] * g[r*i+s];
-      grad_W[r*i+s] -= g[r*i+s] * grad_y[i];
-      grad_g[s] -= W[r*i+s] * grad_y[i];
+      grad_W[r * i + s] -= g[r * i + s] * grad_y[i];
+      grad_g[s] -= W[r * i + s] * grad_y[i];
 
       // g[r*i+s] = phi[r*i+s] * (g[r*(i+1)+s] + U[r*(i+1)+s] * x[i+1]);
       // Let us decompose it:
@@ -698,27 +709,27 @@ void spleaf_solveLT_back(
       // grad_phi[r*i+s] += g[r*i+s]/phi[r*i+s] * grad_g[s];
       // But unstable if phi << 1
       // Better to do:
-      grad_phi[r*i+s] += (g[r*(i+1)+s] + U[r*(i+1)+s] * x[i+1]) *
-        grad_g[s];
-      grad_g[s] *= phi[r*i+s];
+      grad_phi[r * i + s] +=
+        (g[r * (i + 1) + s] + U[r * (i + 1) + s] * x[i + 1]) * grad_g[s];
+      grad_g[s] *= phi[r * i + s];
       // g[r*i+s] = g[r*(i+1)+s] + U[r*(i+1)+s] * x[i+1];
-      grad_U[r*(i+1)+s] += x[i+1] * grad_g[s];
-      grad_y[i+1] += U[r*(i+1)+s] * grad_g[s];
+      grad_U[r * (i + 1) + s] += x[i + 1] * grad_g[s];
+      grad_y[i + 1] += U[r * (i + 1) + s] * grad_g[s];
     }
   }
 
-    // Leaf terms for n-1
-  for (j=n-1-b[n-1]; j<n-1; j++) {
+  // Leaf terms for n-1
+  for (j = n - 1 - b[n - 1]; j < n - 1; j++) {
     // x[j] -= G[offsetrow[n-1]+j] * x[n-1];
-    grad_G[offsetrow[n-1]+j] -= x[n-1] * grad_y[j];
-    grad_y[n-1] -= G[offsetrow[n-1]+j] * grad_y[j];
+    grad_G[offsetrow[n - 1] + j] -= x[n - 1] * grad_y[j];
+    grad_y[n - 1] -= G[offsetrow[n - 1] + j] * grad_y[j];
   }
 
   free(grad_g);
 }
 
 void spleaf_expandsep(
-  // Shapes
+  // Shape
   long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
@@ -733,21 +744,21 @@ void spleaf_expandsep(
   long i, j, s;
   double *f;
 
-  f = (double *) malloc(rsi*sizeof(double));
+  f = (double *)malloc(rsi * sizeof(double));
 
-  for (i=0; i<n; i++) {
-    K[(n+1)*i] = 0.0;
-    for (s=0; s<rsi; s++) {
-      K[(n+1)*i] += U[r*i+sepindex[s]] * V[r*i+sepindex[s]];
+  for (i = 0; i < n; i++) {
+    K[(n + 1) * i] = 0.0;
+    for (s = 0; s < rsi; s++) {
+      K[(n + 1) * i] += U[r * i + sepindex[s]] * V[r * i + sepindex[s]];
       f[s] = 1.0;
     }
-    for (j=i-1; j>=0; j--) {
-      K[n*i+j] = 0.0;
-      for (s=0; s<rsi; s++) {
-        f[s] *= phi[r*j+sepindex[s]];
-        K[n*i+j] += f[s] * U[r*i+sepindex[s]] * V[r*j+sepindex[s]];
+    for (j = i - 1; j >= 0; j--) {
+      K[n * i + j] = 0.0;
+      for (s = 0; s < rsi; s++) {
+        f[s] *= phi[r * j + sepindex[s]];
+        K[n * i + j] += f[s] * U[r * i + sepindex[s]] * V[r * j + sepindex[s]];
       }
-      K[n*j+i] = K[n*i+j];
+      K[n * j + i] = K[n * i + j];
     }
   }
 
@@ -755,11 +766,11 @@ void spleaf_expandsep(
 }
 
 void spleaf_expandsepmixt(
-  // Shapes
+  // Shape
   long n1, long n2, long r, long rsi, long *sepindex,
   // Input
-  double *U1, double *V1, double *phi1,
-  double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
+  double *U1, double *V1, double *phi1, double *U2, double *V2, long *ref2left,
+  double *phi2left, double *phi2right,
   // Output
   double *Km)
 {
@@ -771,57 +782,59 @@ void spleaf_expandsepmixt(
   long i1, i2, j1, j2, s;
   double *f;
 
-  f = (double *) malloc(rsi*sizeof(double));
+  f = (double *)malloc(rsi * sizeof(double));
 
   // Forward part (U2 V1^T)
   j2 = 0;
-  for (j1=0; j1<=ref2left[n2-1]; j1++) {
-    for (s=0; s<rsi; s++) {
-      f[s] = V1[r*j1+sepindex[s]];
+  for (j1 = 0; j1 <= ref2left[n2 - 1]; j1++) {
+    for (s = 0; s < rsi; s++) {
+      f[s] = V1[r * j1 + sepindex[s]];
     }
-    while ((j2<n2) && (ref2left[j2]<j1)) {
+    while ((j2 < n2) && (ref2left[j2] < j1)) {
       j2++;
     }
     i1 = j1;
     i2 = j2;
-    while (i2<n2) {
-      while (i1<ref2left[i2]) {
-        for (s=0; s<rsi; s++) {
-          f[s] *= phi1[r*i1+sepindex[s]];
+    while (i2 < n2) {
+      while (i1 < ref2left[i2]) {
+        for (s = 0; s < rsi; s++) {
+          f[s] *= phi1[r * i1 + sepindex[s]];
         }
         i1++;
       }
-      while ((i2<n2) && (ref2left[i2]==i1)) {
-        Km[n1*i2+j1] = 0.0;
-        for (s=0; s<rsi; s++) {
-          Km[n1*i2+j1] += U2[r*i2+sepindex[s]] * phi2left[r*i2+sepindex[s]] * f[s];
+      while ((i2 < n2) && (ref2left[i2] == i1)) {
+        Km[n1 * i2 + j1] = 0.0;
+        for (s = 0; s < rsi; s++) {
+          Km[n1 * i2 + j1] +=
+            U2[r * i2 + sepindex[s]] * phi2left[r * i2 + sepindex[s]] * f[s];
         }
         i2++;
       }
     }
   }
   // Backward part (V2 U1^T)
-  j2 = n2-1;
-  for (j1=n1-1; j1>ref2left[0]; j1--) {
-    for (s=0; s<rsi; s++) {
-      f[s] = U1[r*j1+sepindex[s]];
+  j2 = n2 - 1;
+  for (j1 = n1 - 1; j1 > ref2left[0]; j1--) {
+    for (s = 0; s < rsi; s++) {
+      f[s] = U1[r * j1 + sepindex[s]];
     }
-    while ((j2>=0) && (ref2left[j2]>=j1)) {
+    while ((j2 >= 0) && (ref2left[j2] >= j1)) {
       j2--;
     }
-    i1 = j1-1;
+    i1 = j1 - 1;
     i2 = j2;
-    while (i2>=0) {
-      while (i1>ref2left[i2]) {
-        for (s=0; s<rsi; s++) {
-          f[s] *= phi1[r*i1+sepindex[s]];
+    while (i2 >= 0) {
+      while (i1 > ref2left[i2]) {
+        for (s = 0; s < rsi; s++) {
+          f[s] *= phi1[r * i1 + sepindex[s]];
         }
         i1--;
       }
-      while ((i2>=0) && (ref2left[i2]==i1)) {
-        Km[n1*i2+j1] = 0.0;
-        for (s=0; s<rsi; s++) {
-          Km[n1*i2+j1] += V2[r*i2+sepindex[s]] * phi2right[r*i2+sepindex[s]] * f[s];
+      while ((i2 >= 0) && (ref2left[i2] == i1)) {
+        Km[n1 * i2 + j1] = 0.0;
+        for (s = 0; s < rsi; s++) {
+          Km[n1 * i2 + j1] +=
+            V2[r * i2 + sepindex[s]] * phi2right[r * i2 + sepindex[s]] * f[s];
         }
         i2--;
       }
@@ -832,7 +845,7 @@ void spleaf_expandsepmixt(
 }
 
 void spleaf_expandantisep(
-  // Shapes
+  // Shape
   long n, long r, long rsi, long *sepindex,
   // Input
   double *U, double *V, double *phi,
@@ -847,20 +860,20 @@ void spleaf_expandantisep(
   long i, j, s;
   double *f;
 
-  f = (double *) malloc(rsi*sizeof(double));
+  f = (double *)malloc(rsi * sizeof(double));
 
-  for (i=0; i<n; i++) {
-    K[(n+1)*i] = 0.0;
-    for (s=0; s<rsi; s++) {
+  for (i = 0; i < n; i++) {
+    K[(n + 1) * i] = 0.0;
+    for (s = 0; s < rsi; s++) {
       f[s] = 1.0;
     }
-    for (j=i-1; j>=0; j--) {
-      K[n*i+j] = 0.0;
-      for (s=0; s<rsi; s++) {
-        f[s] *= phi[r*j+sepindex[s]];
-        K[n*i+j] += f[s] * U[r*i+sepindex[s]] * V[r*j+sepindex[s]];
+    for (j = i - 1; j >= 0; j--) {
+      K[n * i + j] = 0.0;
+      for (s = 0; s < rsi; s++) {
+        f[s] *= phi[r * j + sepindex[s]];
+        K[n * i + j] += f[s] * U[r * i + sepindex[s]] * V[r * j + sepindex[s]];
       }
-      K[n*j+i] = -K[n*i+j];
+      K[n * j + i] = -K[n * i + j];
     }
   }
 
@@ -868,11 +881,10 @@ void spleaf_expandantisep(
 }
 
 void spleaf_dotsep(
-  // Shapes
+  // Shape
   long n, long r, long rsi, long *sepindex,
   // Input
-  double *U, double *V, double *phi,
-  double *x,
+  double *U, double *V, double *phi, double *x,
   // Output
   double *y)
 {
@@ -884,33 +896,35 @@ void spleaf_dotsep(
   long i, s;
   double *f;
 
-  f = (double *) malloc(rsi*sizeof(double));
+  f = (double *)malloc(rsi * sizeof(double));
 
   // Forward part (U V^T) + diagonal
   // Initialize f and y[0]
   y[0] = 0.0;
-  for (s=0; s<rsi; s++) {
+  for (s = 0; s < rsi; s++) {
     f[s] = V[sepindex[s]] * x[0];
     y[0] += U[sepindex[s]] * f[s];
   }
-  for (i=1; i<n; i++) {
+  for (i = 1; i < n; i++) {
     y[i] = 0.0;
-    for (s=0; s<rsi; s++) {
+    for (s = 0; s < rsi; s++) {
       // Update f
-      f[s] = phi[r*(i-1)+sepindex[s]] * f[s] + V[r*i+sepindex[s]] * x[i];
-      y[i] += U[r*i+sepindex[s]] * f[s];
+      f[s] =
+        phi[r * (i - 1) + sepindex[s]] * f[s] + V[r * i + sepindex[s]] * x[i];
+      y[i] += U[r * i + sepindex[s]] * f[s];
     }
   }
   // Backward part (V U^T)
   // Initialize f
-  for (s=0; s<rsi; s++) {
+  for (s = 0; s < rsi; s++) {
     f[s] = 0.0;
   }
-  for (i=n-2; i>=0; i--) {
-    for (s=0; s<rsi; s++) {
+  for (i = n - 2; i >= 0; i--) {
+    for (s = 0; s < rsi; s++) {
       // Update f
-      f[s] = phi[r*i+sepindex[s]] * (f[s] + U[r*(i+1)+sepindex[s]] * x[i+1]);
-      y[i] += V[r*i+sepindex[s]] * f[s];
+      f[s] = phi[r * i + sepindex[s]] *
+        (f[s] + U[r * (i + 1) + sepindex[s]] * x[i + 1]);
+      y[i] += V[r * i + sepindex[s]] * f[s];
     }
   }
 
@@ -918,12 +932,11 @@ void spleaf_dotsep(
 }
 
 void spleaf_dotsepmixt(
-  // Shapes
+  // Shape
   long n1, long n2, long r, long rsi, long *sepindex,
   // Input
-  double *U1, double *V1, double *phi1,
-  double *U2, double *V2, long *ref2left, double *phi2left, double *phi2right,
-  double *x,
+  double *U1, double *V1, double *phi1, double *U2, double *V2, long *ref2left,
+  double *phi2left, double *phi2right, double *x,
   // Output
   double *y)
 {
@@ -936,55 +949,57 @@ void spleaf_dotsepmixt(
   long i, j, s;
   double *f;
 
-  f = (double *) malloc(rsi*sizeof(double));
+  f = (double *)malloc(rsi * sizeof(double));
 
   // Forward part (U2 V1^T)
   i = 0;
-  while ((i<n2) && (ref2left[i] == -1)) {
+  while ((i < n2) && (ref2left[i] == -1)) {
     y[i] = 0.0;
     i++;
   }
   // Initialize f
-  for (s=0; s<rsi; s++) {
+  for (s = 0; s < rsi; s++) {
     f[s] = V1[sepindex[s]] * x[0];
   }
   j = 0;
-  while (i<n2) {
+  while (i < n2) {
     // Update f
-    while (j<ref2left[i]) {
-      for (s=0; s<rsi; s++) {
-        f[s] = phi1[r*j+sepindex[s]] * f[s] + V1[r*(j+1)+sepindex[s]] * x[j+1];
+    while (j < ref2left[i]) {
+      for (s = 0; s < rsi; s++) {
+        f[s] = phi1[r * j + sepindex[s]] * f[s] +
+          V1[r * (j + 1) + sepindex[s]] * x[j + 1];
       }
       j++;
     }
     // Compute forward part of y[i]
     y[i] = 0.0;
-    for (s=0; s<rsi; s++) {
-      y[i] += U2[r*i+sepindex[s]] * phi2left[r*i+sepindex[s]] * f[s];
+    for (s = 0; s < rsi; s++) {
+      y[i] += U2[r * i + sepindex[s]] * phi2left[r * i + sepindex[s]] * f[s];
     }
     i++;
   }
   // Backward part (V2 U1^T)
-  i = n2-1;
-  while ((i>=0) && (ref2left[i] == n1-1)) {
+  i = n2 - 1;
+  while ((i >= 0) && (ref2left[i] == n1 - 1)) {
     i--;
   }
   // Initialize f
-  for (s=0; s<rsi; s++) {
-    f[s] = U1[r*(n1-1)+sepindex[s]] * x[n1-1];
+  for (s = 0; s < rsi; s++) {
+    f[s] = U1[r * (n1 - 1) + sepindex[s]] * x[n1 - 1];
   }
-  j = n1-2;
-  while (i>=0) {
+  j = n1 - 2;
+  while (i >= 0) {
     // Update f
-    while (j>ref2left[i]) {
-      for (s=0; s<rsi; s++) {
-        f[s] = phi1[r*j+sepindex[s]] * f[s] + U1[r*j+sepindex[s]] * x[j];
+    while (j > ref2left[i]) {
+      for (s = 0; s < rsi; s++) {
+        f[s] =
+          phi1[r * j + sepindex[s]] * f[s] + U1[r * j + sepindex[s]] * x[j];
       }
       j--;
     }
     // Compute backward part of y[i]
-    for (s=0; s<rsi; s++) {
-      y[i] += V2[r*i+sepindex[s]] * phi2right[r*i+sepindex[s]] * f[s];
+    for (s = 0; s < rsi; s++) {
+      y[i] += V2[r * i + sepindex[s]] * phi2right[r * i + sepindex[s]] * f[s];
     }
     i--;
   }
@@ -993,48 +1008,49 @@ void spleaf_dotsepmixt(
 }
 
 void spleaf_dotantisep(
-  // Shapes
+  // Shape
   long n, long r, long rsi, long *sepindex,
   // Input
-  double *U, double *V, double *phi,
-  double *x,
+  double *U, double *V, double *phi, double *x,
   // Output
   double *y)
 {
   // Compute y = K x,
-  // where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF matrix,
-  // or a subset of semiseparable terms.
-  // This is useful for the conditional derivative mean computation.
+  // where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF
+  // matrix, or a subset of semiseparable terms. This is useful for the
+  // conditional derivative mean computation.
 
   long i, s;
   double *f;
 
-  f = (double *) malloc(rsi*sizeof(double));
+  f = (double *)malloc(rsi * sizeof(double));
 
   // Forward part (U V^T)
   // Initialize f and y[0]
   y[0] = 0.0;
-  for (s=0; s<rsi; s++) {
+  for (s = 0; s < rsi; s++) {
     f[s] = 0.0;
   }
-  for (i=1; i<n; i++) {
+  for (i = 1; i < n; i++) {
     y[i] = 0.0;
-    for (s=0; s<rsi; s++) {
+    for (s = 0; s < rsi; s++) {
       // Update f
-      f[s] = phi[r*(i-1)+sepindex[s]] * (f[s] + V[r*(i-1)+sepindex[s]] * x[i-1]);
-      y[i] += U[r*i+sepindex[s]] * f[s];
+      f[s] = phi[r * (i - 1) + sepindex[s]] *
+        (f[s] + V[r * (i - 1) + sepindex[s]] * x[i - 1]);
+      y[i] += U[r * i + sepindex[s]] * f[s];
     }
   }
   // Backward part (-V U^T)
   // Initialize f
-  for (s=0; s<rsi; s++) {
+  for (s = 0; s < rsi; s++) {
     f[s] = 0.0;
   }
-  for (i=n-2; i>=0; i--) {
-    for (s=0; s<rsi; s++) {
+  for (i = n - 2; i >= 0; i--) {
+    for (s = 0; s < rsi; s++) {
       // Update f
-      f[s] = phi[r*i+sepindex[s]] * (f[s] + U[r*(i+1)+sepindex[s]] * x[i+1]);
-      y[i] -= V[r*i+sepindex[s]] * f[s];
+      f[s] = phi[r * i + sepindex[s]] *
+        (f[s] + U[r * (i + 1) + sepindex[s]] * x[i + 1]);
+      y[i] -= V[r * i + sepindex[s]] * f[s];
     }
   }
 

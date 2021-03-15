@@ -17,9 +17,9 @@
 
 #define NPY_NO_DEPRECATED_API NPY_1_18_API_VERSION
 
+#include "libspleaf.h"
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include "libspleaf.h"
 
 // Module docstring
 static char module_docstring[] =
@@ -114,9 +114,9 @@ static char spleaf_dotsepmixt_docstring[] =
   "This is useful for the conditional mean computation.\n";
 static char spleaf_dotantisep_docstring[] =
   "Compute y = K x,\n"
-  "where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF matrix,\n"
-  "or a subset of semiseparable terms.\n"
-  "This is useful for the conditional derivative mean computation.\n";
+  "where K is the (n x n) semiseparable part of an anti-symmetric S+LEAF\n"
+  "matrix, or a subset of semiseparable terms. This is useful for the\n"
+  "conditional derivative mean computation.\n";
 
 // Module methods
 static PyObject *libspleaf_spleaf_cholesky(PyObject *self, PyObject *args);
@@ -152,26 +152,22 @@ static PyMethodDef module_methods[] = {
   {"spleaf_dotsep", libspleaf_spleaf_dotsep, METH_VARARGS, spleaf_dotsep_docstring},
   {"spleaf_dotsepmixt", libspleaf_spleaf_dotsepmixt, METH_VARARGS, spleaf_dotsepmixt_docstring},
   {"spleaf_dotantisep", libspleaf_spleaf_dotantisep, METH_VARARGS, spleaf_dotantisep_docstring},
-  {NULL, NULL, 0, NULL}
-};
+  {NULL, NULL, 0, NULL}};
 
 // Module definition
 static struct PyModuleDef myModule = {
-  PyModuleDef_HEAD_INIT,
-  "libspleaf",
-  module_docstring,
-  -1,
-  module_methods
-};
+  PyModuleDef_HEAD_INIT, "libspleaf", module_docstring, -1, module_methods};
 
 // Module initialization
-PyMODINIT_FUNC PyInit_libspleaf(void) {
+PyMODINIT_FUNC PyInit_libspleaf(void)
+{
   // import numpy arrays
   import_array();
   return PyModule_Create(&myModule);
 }
 
-static PyObject *libspleaf_spleaf_cholesky(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_cholesky(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -297,7 +293,8 @@ static PyObject *libspleaf_spleaf_cholesky(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_dotL(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_dotL(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -399,7 +396,8 @@ static PyObject *libspleaf_spleaf_dotL(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_solveL(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_solveL(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -501,7 +499,8 @@ static PyObject *libspleaf_spleaf_solveL(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_dotLT(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_dotLT(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -603,7 +602,8 @@ static PyObject *libspleaf_spleaf_dotLT(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_solveLT(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_solveLT(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -705,7 +705,8 @@ static PyObject *libspleaf_spleaf_solveLT(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_cholesky_back(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_cholesky_back(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -887,7 +888,8 @@ static PyObject *libspleaf_spleaf_cholesky_back(PyObject *self, PyObject *args) 
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_dotL_back(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_dotL_back(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -1029,7 +1031,8 @@ static PyObject *libspleaf_spleaf_dotL_back(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_solveL_back(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_solveL_back(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -1171,7 +1174,8 @@ static PyObject *libspleaf_spleaf_solveL_back(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_dotLT_back(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_dotLT_back(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -1313,7 +1317,8 @@ static PyObject *libspleaf_spleaf_dotLT_back(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_solveLT_back(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_solveLT_back(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   PyObject *obj_offsetrow;
@@ -1455,7 +1460,8 @@ static PyObject *libspleaf_spleaf_solveLT_back(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_expandsep(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_expandsep(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   long rsi;
@@ -1528,7 +1534,8 @@ static PyObject *libspleaf_spleaf_expandsep(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args)
+{
   long n1;
   long n2;
   long r;
@@ -1644,7 +1651,8 @@ static PyObject *libspleaf_spleaf_expandsepmixt(PyObject *self, PyObject *args) 
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   long rsi;
@@ -1717,7 +1725,8 @@ static PyObject *libspleaf_spleaf_expandantisep(PyObject *self, PyObject *args) 
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   long rsi;
@@ -1798,7 +1807,8 @@ static PyObject *libspleaf_spleaf_dotsep(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args)
+{
   long n1;
   long n2;
   long r;
@@ -1922,7 +1932,8 @@ static PyObject *libspleaf_spleaf_dotsepmixt(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args) {
+static PyObject *libspleaf_spleaf_dotantisep(PyObject *self, PyObject *args)
+{
   long n;
   long r;
   long rsi;
