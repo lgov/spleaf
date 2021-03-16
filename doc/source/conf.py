@@ -4,7 +4,7 @@ import spleaf
 
 # -- Project information -----------------------------------------------------
 project = 'S+LEAF'
-copyright = '2019-2020, Jean-Baptiste Delisle'
+copyright = '2019-2021, Jean-Baptiste Delisle'
 author = 'Jean-Baptiste Delisle'
 
 # -- General configuration ---------------------------------------------------
