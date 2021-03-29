@@ -27,7 +27,7 @@ Usage
 -----
 
 S+LEAF covariance matrices are generated using the
-:doc:`classes/spleaf.cov.Cov` class.
+:doc:`_autosummary/spleaf.cov.Cov` class.
 The covariance matrix is modeled as the sum of different components (or terms),
 which split into two categories:
 noise terms and kernel terms (gaussian processes).
@@ -194,7 +194,7 @@ See the :ref:`API reference<api_ref>` for more details.
 
 The low level implementation of
 S+LEAF matrices as defined by [2]_
-is available as the :doc:`classes/spleaf.Spleaf` class,
+is available as the :doc:`_autosummary/spleaf.Spleaf` class,
 but one typically does not need to directly deal with it.
 
 .. _api_ref:
@@ -203,27 +203,13 @@ API Reference
 -------------
 
 .. autosummary::
-   :toctree: classes
-   :template: autosummary/class.rst
-   :nosignatures:
+   :toctree: _autosummary
+   :template: autosummary/custom_module.rst
+   :recursive:
 
-   spleaf.cov.Cov
-   spleaf.term.Term
-   spleaf.term.Noise
-   spleaf.term.Kernel
-   spleaf.term.Error
-   spleaf.term.Jitter
-   spleaf.term.InstrumentJitter
-   spleaf.term.CalibrationError
-   spleaf.term.CalibrationJitter
-   spleaf.term.ExponentialKernel
-   spleaf.term.QuasiperiodicKernel
-   spleaf.term.Matern32Kernel
-   spleaf.term.Matern52Kernel
-   spleaf.term.USHOKernel
-   spleaf.term.OSHOKernel
-   spleaf.term.SHOKernel
-   spleaf.Spleaf
+   spleaf.cov
+   spleaf.term
+   spleaf
 
 References
 ----------

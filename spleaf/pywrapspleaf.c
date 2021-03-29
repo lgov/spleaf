@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Jean-Baptiste Delisle
+// Copyright 2019-2020 Jean-Baptiste Delisle
 //
 // This file is part of spleaf.
 //
