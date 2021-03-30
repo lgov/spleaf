@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019 Jean-Baptiste Delisle
+# Copyright 2019-2021 Jean-Baptiste Delisle
 #
 # This file is part of spleaf.
 #
@@ -23,4 +23,4 @@ __author__ = 'Jean-Baptiste Delisle'
 __author_email__ = 'jean-baptiste.delisle@unige.ch'
 __license__ = 'GPLv3'
 __url__ = 'https://gitlab.unige.ch/jean-baptiste.delisle/spleaf'
-__version__ = "0.1.6"
+__version__ = "0.2.0"
