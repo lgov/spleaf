@@ -24,6 +24,41 @@ from . import Spleaf, libspleaf
 from .term import Noise, Kernel
 
 
+def merge_series(list_t, *args):
+  r"""
+  Merge and sort several time series by increasing time.
+
+  Parameters
+  ----------
+  list_t : list of ndarrays
+    Times of measurement for each time series.
+  *args : additional lists of ndarrays
+    Complementary arrays to be merged and sorted with the same order as the time.
+
+  Returns
+  -------
+  full_t : ndarray
+    Merged and sorted array of times.
+  *full_args : additional ndarrays
+    Merged and sorted complementary arrays.
+  series_index : list of ndarrays
+    Indices corresponding to each time series in the merged arrays.
+  """
+
+  n_series = len(list_t)
+  list_n = [tk.size for tk in list_t]
+  cum_n = np.insert(np.cumsum(list_n), 0, 0)
+  full_t = np.hstack(list_t)
+  ksort = np.argsort(full_t)
+  full_t = full_t[ksort]
+  full_args = [np.hstack(arg)[ksort] for arg in args]
+  series_index = [
+    np.where((ksort >= cum_n[k]) & (ksort < cum_n[k + 1]))[0]
+    for k in range(n_series)
+  ]
+  return (full_t, *full_args, series_index)
+
+
 class Cov(Spleaf):
   r"""
   Covariance matrix class.
@@ -117,6 +152,10 @@ class Cov(Spleaf):
     super().__init__(self.A, self.U, self.V, self.phi, self.offsetrow, self.b,
       self.F)
 
+    # Kernel derivative
+    self._dU = np.empty((self.n, self.r))
+    self._d2U = np.empty((self.n, self.r))
+
   def get_param(self, param=None):
     r"""
     Get the values of the parameters.
@@ -142,7 +181,7 @@ class Cov(Spleaf):
     value = np.empty(len(param))
     for k, keypar in enumerate(param):
       key, par = self._param_dict[keypar]
-      value[k] = getattr(self.term[key], f'_{par}')
+      value[k] = self.term[key]._get_param(par)
     return (value[0] if single else value)
 
   def set_param(self, value, param=None):
@@ -391,18 +430,13 @@ class Cov(Spleaf):
     :math:`\mathcal{O}(n^3)`.
     """
 
-    dU = np.empty((self.n, self.r))
-    if calc_cov:
-      d2U = np.empty((self.n, self.r))
-    else:
-      d2U = None
-
     kernel_list = self.kernel if kernel is None else kernel
     for key in kernel_list:
-      self.kernel[key]._deriv(dU, d2U)
+      self.kernel[key]._deriv(calc_cov)
 
-    return (super().self_conditional_derivative(y, dU, d2U, calc_cov,
-      self._kernel_index(kernel)))
+    return (super().self_conditional_derivative(y,
+      calc_cov=calc_cov,
+      index=self._kernel_index(kernel)))
 
   def conditional_derivative(self, y, t2, calc_cov=False, kernel=None):
     r"""
@@ -454,7 +488,6 @@ class Cov(Spleaf):
 
     n2 = t2.size
     dt2 = t2[1:] - t2[:-1]
-    dU = np.empty((self.n, self.r))
     dU2 = np.empty((n2, self.r))
     V2 = np.empty((n2, self.r))
     phi2 = np.empty((n2 - 1, self.r))
@@ -474,12 +507,20 @@ class Cov(Spleaf):
 
     kernel_list = self.kernel if kernel is None else kernel
     for key in kernel_list:
-      self.kernel[key]._deriv(dU)
+      self.kernel[key]._deriv(False)
       self.kernel[key]._deriv_t2(t2, dt2, dU2, V2, phi2, ref2left, dt2left,
         dt2right, phi2left, phi2right, d2U2)
 
-    return (super().conditional_derivative(y, dU, dU2, d2U2, V2, phi2,
-      ref2left, phi2left, phi2right, calc_cov, self._kernel_index(kernel)))
+    return (super().conditional_derivative(y,
+      dU2,
+      d2U2,
+      V2,
+      phi2,
+      ref2left,
+      phi2left,
+      phi2right,
+      calc_cov=calc_cov,
+      index=self._kernel_index(kernel)))
 
   def eval(self, dt, kernel=None):
     r"""

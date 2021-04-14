@@ -132,6 +132,10 @@ class Spleaf():
     self._grad_phicho = None
     self._grad_G = None
 
+    # Kernel derivative
+    self._dU = None
+    self._d2U = None
+
     # Other
     self._logdet_value = None
     self._sqD_value = None
@@ -789,7 +793,11 @@ class Spleaf():
     libspleaf.spleaf_expandsep(n2, self.r, ri, index, U2, V2, phi2, K)
     return (y2, K - Hm @ Hm.T)
 
-  def self_conditional_derivative(self, y, dU, d2U, calc_cov=False,
+  def self_conditional_derivative(self,
+    y,
+    dU=None,
+    d2U=None,
+    calc_cov=False,
     index=None):
     r"""
     Conditional mean and covariance
@@ -800,8 +808,9 @@ class Spleaf():
     ----------
     y : (n,) ndarray
       The vector of observed values :math:`y`.
-    dU, d2U : (n, r) ndarrays
+    dU, d2U : (n, r) ndarrays or None
       Symmetric semiseparable part of the derivatives.
+      If None, the values from a previous call are kept.
     calc_cov : False (default), True, or 'diag'
       Whether to output only the conditional mean (False),
       the mean and full covariance matrix (True),
@@ -836,9 +845,15 @@ class Spleaf():
       index = np.arange(self.r)
     ri = index.size
 
+    if dU is not None:
+      self._dU = dU
+    if d2U is not None:
+      self._d2U = d2U
+
     u = self.solveLT(self.solveL(y) / self.D)
     dy = np.empty(self.n)
-    libspleaf.spleaf_dotantisep(self.n, self.r, ri, index, dU, self.V,
+
+    libspleaf.spleaf_dotantisep(self.n, self.r, ri, index, self._dU, self.V,
       self.phi, u, dy)
 
     if not calc_cov:
@@ -846,9 +861,9 @@ class Spleaf():
 
     dK = np.empty((self.n, self.n))
     d2K = np.empty((self.n, self.n))
-    libspleaf.spleaf_expandantisep(self.n, self.r, ri, index, dU, self.V,
+    libspleaf.spleaf_expandantisep(self.n, self.r, ri, index, self._dU, self.V,
       self.phi, dK)
-    libspleaf.spleaf_expandsep(self.n, self.r, ri, index, d2U, self.V,
+    libspleaf.spleaf_expandsep(self.n, self.r, ri, index, self._d2U, self.V,
       self.phi, d2K)
     H = np.array([self.solveL(dKk) / self.sqD() for dKk in dK])
 
@@ -859,7 +874,6 @@ class Spleaf():
 
   def conditional_derivative(self,
     y,
-    dU,
     dU2,
     d2U2,
     V2,
@@ -867,6 +881,7 @@ class Spleaf():
     ref2left,
     phi2left,
     phi2right,
+    dU=None,
     calc_cov=False,
     index=None):
     r"""
@@ -891,6 +906,9 @@ class Spleaf():
     phi2right : (n2, r) ndarray
       Preconditionning matrix linking new abscissas
       with their closest original abscissas to the right.
+    dU : (n, r) ndarray or None
+      Symmetric semiseparable part of the derivative.
+      If None, the value from a previous call is kept.
     calc_cov : False (default), True, or 'diag'
       Whether to output only the conditional mean (False),
       the mean and full covariance matrix (True),
@@ -925,18 +943,21 @@ class Spleaf():
       index = np.arange(self.r)
     ri = index.size
 
+    if dU is not None:
+      self._dU = dU
+
     u = self.solveLT(self.solveL(y) / self.D)
     n2 = dU2.shape[0]
     y2 = np.empty(n2)
-    libspleaf.spleaf_dotsepmixt(self.n, n2, self.r, ri, index, -dU, self.V,
-      self.phi, dU2, V2, ref2left, phi2left, phi2right, u, y2)
+    libspleaf.spleaf_dotsepmixt(self.n, n2, self.r, ri, index, -self._dU,
+      self.V, self.phi, dU2, V2, ref2left, phi2left, phi2right, u, y2)
 
     if not calc_cov:
       return (y2)
 
     dKm = np.empty((n2, self.n))
-    libspleaf.spleaf_expandsepmixt(self.n, n2, self.r, ri, index, -dU, self.V,
-      self.phi, dU2, V2, ref2left, phi2left, phi2right, dKm)
+    libspleaf.spleaf_expandsepmixt(self.n, n2, self.r, ri, index, -self._dU,
+      self.V, self.phi, dU2, V2, ref2left, phi2left, phi2right, dKm)
     Hm = np.array([self.solveL(dKmk) / self.sqD() for dKmk in dKm])
 
     if calc_cov == 'diag':
