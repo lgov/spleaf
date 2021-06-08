@@ -519,7 +519,7 @@ class QuasiperiodicKernel(Kernel):
       #   self._la**2) * self._a + 2 * self._la * self._nu * self._b
       # d2b = (self._nu**2 -
       #   self._la**2) * self._b - 2 * self._la * self._nu * self._a
-      grad['a'] -= (self._nu**2 -
+      grad['a'] += (self._nu**2 -
         self._la**2) * grad_d2a - 2 * self._la * self._nu * grad_d2b
       grad['b'] += 2 * self._la * self._nu * grad_d2a + (self._nu**2 -
         self._la**2) * grad_d2b
@@ -1389,3 +1389,6 @@ class MultiSeriesKernel(Kernel):
         self._offset:self._offset + self._kernel._r] = kernel_phi2left
       phi2right[:,
         self._offset:self._offset + self._kernel._r] = kernel_phi2right
+
+  def eval(self, dt):
+    return (self._kernel.eval(dt))
