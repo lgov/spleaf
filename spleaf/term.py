@@ -1100,7 +1100,7 @@ class MultiSeriesKernel(Kernel):
       self._coef_r = 1
     else:
       self._with_derivative = True
-      self._coef_r = 4
+      self._coef_r = 2
       self._param += [f'beta_{k}' for k in range(self._nseries)]
     self._r = self._coef_r * kernel._r
 
@@ -1135,16 +1135,12 @@ class MultiSeriesKernel(Kernel):
         self._cov.V[ik, self._offset + self._kernel._r:self._offset +
           2 * self._kernel._r] = self._beta[k] * self._kernel._cov.V[ik]
         # cov(dGP, GP)
-        self._cov.U[ik, self._offset + 2 * self._kernel._r:self._offset +
-          3 * self._kernel._r] = self._beta[k] * self._kernel._cov._dU[ik]
-        self._cov.V[ik, self._offset + 2 * self._kernel._r:self._offset +
-          3 * self._kernel._r] = self._alpha[k] * self._kernel._cov.V[ik]
+        self._cov.U[ik, self._offset:self._offset +
+          self._kernel._r] += self._beta[k] * self._kernel._cov._dU[ik]
         # cov(dGP, dGP)
         self._cov.A[ik] += self._beta[k]**2 * self._kernel._cov._d2A[ik]
-        self._cov.U[ik, self._offset + 3 * self._kernel._r:self._offset +
-          4 * self._kernel._r] = self._beta[k] * self._kernel._cov._d2U[ik]
-        self._cov.V[ik, self._offset + 3 * self._kernel._r:self._offset +
-          4 * self._kernel._r] = self._beta[k] * self._kernel._cov.V[ik]
+        self._cov.U[ik, self._offset + self._kernel._r:self._offset +
+          2 * self._kernel._r] += self._beta[k] * self._kernel._cov._d2U[ik]
     for k in range(self._coef_r):
       self._cov.phi[:, self._offset + k * self._kernel._r:self._offset +
         (k + 1) * self._kernel._r] = self._kernel._cov.phi
@@ -1205,34 +1201,21 @@ class MultiSeriesKernel(Kernel):
         self._kernel._cov._grad_V[ik] += self._beta[k] * self._cov._grad_V[ik,
           self._offset + self._kernel._r:self._offset + 2 * self._kernel._r]
         # cov(dGP, GP)
-        grad[f'beta_{k}'] += np.sum(self._cov._grad_U[ik, self._offset +
-          2 * self._kernel._r:self._offset + 3 * self._kernel._r] *
+        grad[f'beta_{k}'] += np.sum(
+          self._cov._grad_U[ik, self._offset:self._offset + self._kernel._r] *
           self._kernel._cov._dU[ik])
-        grad[f'alpha_{k}'] += np.sum(self._cov._grad_V[ik, self._offset +
-          2 * self._kernel._r:self._offset + 3 * self._kernel._r] *
-          self._kernel._cov.V[ik])
         self._kernel._cov._grad_dU[ik] += self._beta[k] * self._cov._grad_U[ik,
-          self._offset + 2 * self._kernel._r:self._offset +
-          3 * self._kernel._r]
-        self._kernel._cov._grad_V[ik] += self._alpha[k] * self._cov._grad_V[ik,
-          self._offset + 2 * self._kernel._r:self._offset +
-          3 * self._kernel._r]
+          self._offset:self._offset + self._kernel._r]
         # cov(dGP, dGP)
         grad[f'beta_{k}'] += 2 * self._beta[k] * np.sum(
           self._cov._grad_A[ik] * self._kernel._cov._d2A[ik])
-        grad[f'beta_{k}'] += np.sum(self._cov._grad_U[ik, self._offset +
-          3 * self._kernel._r:self._offset + 4 * self._kernel._r] *
-          self._kernel._cov._d2U[ik] + self._cov._grad_V[ik, self._offset +
-          3 * self._kernel._r:self._offset + 4 * self._kernel._r] *
-          self._kernel._cov.V[ik])
+        grad[f'beta_{k}'] += np.sum(self._cov._grad_U[ik,
+          self._offset + self._kernel._r:self._offset + 2 * self._kernel._r] *
+          self._kernel._cov._d2U[ik])
         self._kernel._cov._grad_d2A[
           ik] = self._beta[k]**2 * self._cov._grad_A[ik]
         self._kernel._cov._grad_d2U[ik] = self._beta[k] * self._cov._grad_U[ik,
-          self._offset + 3 * self._kernel._r:self._offset +
-          4 * self._kernel._r]
-        self._kernel._cov._grad_V[ik] += self._beta[k] * self._cov._grad_V[ik,
-          self._offset + 3 * self._kernel._r:self._offset +
-          4 * self._kernel._r]
+          self._offset + self._kernel._r:self._offset + 2 * self._kernel._r]
 
     self._kernel._cov._grad_phi = sum(self._cov._grad_phi[:, self._offset +
       k * self._kernel._r:self._offset + (k + 1) * self._kernel._r]
@@ -1315,15 +1298,10 @@ class MultiSeriesKernel(Kernel):
       V2[:, self._offset + self._kernel._r:self._offset +
         2 * self._kernel._r] = beta * kernel_V2
       # cov(dGP, GP)
-      U2[:, self._offset + 2 * self._kernel._r:self._offset +
-        3 * self._kernel._r] = beta * kernel_dU2
-      V2[:, self._offset + 2 * self._kernel._r:self._offset +
-        3 * self._kernel._r] = alpha * kernel_V2
+      U2[:, self._offset:self._offset + self._kernel._r] += beta * kernel_dU2
       # cov(dGP, dGP)
-      U2[:, self._offset + 3 * self._kernel._r:self._offset +
-        4 * self._kernel._r] = beta * kernel_d2U2
-      V2[:, self._offset + 3 * self._kernel._r:self._offset +
-        4 * self._kernel._r] = beta * kernel_V2
+      U2[:, self._offset + self._kernel._r:self._offset +
+        2 * self._kernel._r] = beta * kernel_d2U2
 
     for k in range(self._coef_r):
       phi2[:, self._offset + k * self._kernel._r:self._offset +
