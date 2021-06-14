@@ -63,7 +63,7 @@ def grad(x,
 
 def _generate_random_C(seed=0, deriv=False):
   np.random.seed(seed)
-  t = np.cumsum(10**np.random.uniform(-2, 2, n))
+  t = np.cumsum(10**np.random.uniform(-2, 1.5, n))
   sig_err = np.random.uniform(0.5, 1.5, n)
   sig_jitter = np.random.uniform(0.5, 1.5)
   inst_id = np.random.randint(0, ninst, n)
