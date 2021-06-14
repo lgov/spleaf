@@ -12,6 +12,7 @@ nexp = 1
 nqper = 1
 nmat32 = 1
 nmat52 = 1
+ngauss = 1
 nusho = 1
 nosho = 1
 nsho = 1
@@ -98,6 +99,8 @@ def _generate_random_C(seed=0, deriv=False):
   rho_mat32 = 10**np.random.uniform(-2, 2, nmat32)
   sig_mat52 = np.random.uniform(0.5, 1.5, nmat52)
   rho_mat52 = 10**np.random.uniform(-2, 2, nmat52)
+  sig_gauss = np.random.uniform(0.5, 1.5, ngauss)
+  rho_gauss = 10**np.random.uniform(-2, 2, ngauss)
   sig_usho = np.random.uniform(0.5, 1.5, nusho)
   P0_usho = 10**np.random.uniform(-2, 2, nusho)
   Q_usho = np.random.uniform(0.5, 20.0, nusho)
@@ -129,6 +132,10 @@ def _generate_random_C(seed=0, deriv=False):
       **{
       f'mat52_{k}': Matern52Kernel(sig_mat52[k], rho_mat52[k])
       for k in range(nmat52)
+      },
+      **{
+      f'gauss_{k}': QuasiGaussianKernel(sig_gauss[k], rho_gauss[k])
+      for k in range(ngauss)
       },
       **{
       f'usho_{k}': USHOKernel(sig_usho[k], P0_usho[k], Q_usho[k])
@@ -174,6 +181,10 @@ def _generate_random_C(seed=0, deriv=False):
       for k in range(nmat52)
       },
       **{
+      f'gauss_{k}': QuasiGaussianKernel(sig_gauss[k], rho_gauss[k])
+      for k in range(ngauss)
+      },
+      **{
       f'usho_{k}': USHOKernel(sig_usho[k], P0_usho[k], Q_usho[k])
       for k in range(nusho)
       },
@@ -202,6 +213,8 @@ def _generate_random_param(seed=1):
   rho_mat32 = 10**np.random.uniform(-2, 2, nmat32)
   sig_mat52 = np.random.uniform(0.5, 1.5, nmat52)
   rho_mat52 = 10**np.random.uniform(-2, 2, nmat52)
+  sig_gauss = np.random.uniform(0.5, 1.5, ngauss)
+  rho_gauss = 10**np.random.uniform(-2, 2, ngauss)
   sig_usho = np.random.uniform(0.5, 1.5, nusho)
   P0_usho = 10**np.random.uniform(-2, 2, nusho)
   Q_usho = np.random.uniform(0.5, 20.0, nusho)
@@ -213,7 +226,7 @@ def _generate_random_param(seed=1):
   Q_sho = np.random.uniform(0.01, 2.0, nsho)
 
   return (sig_jitter, sig_jitter_inst, sig_calib_inst, a_exp, la_exp, a_qper,
-    b_qper, la_qper, nu_qper, sig_mat32, rho_mat32, sig_mat52, rho_mat52,
+    b_qper, la_qper, nu_qper, sig_mat32, rho_mat32, sig_mat52, rho_mat52, sig_gauss, rho_gauss,
     sig_usho, P0_usho, Q_usho, sig_osho, P0_osho, Q_osho, sig_sho, P0_sho,
     Q_sho)
 
@@ -267,15 +280,19 @@ def test_set_param():
     for k in range(nmat52)
     },
     **{
-    f'usho_{k}': USHOKernel(param[13][k], param[14][k], param[15][k])
+    f'gauss_{k}': QuasiGaussianKernel(param[13][k], param[14][k])
+    for k in range(ngauss)
+    },
+    **{
+    f'usho_{k}': USHOKernel(param[15][k], param[16][k], param[17][k])
     for k in range(nusho)
     },
     **{
-    f'osho_{k}': OSHOKernel(param[16][k], param[17][k], param[18][k])
+    f'osho_{k}': OSHOKernel(param[18][k], param[19][k], param[20][k])
     for k in range(nosho)
     },
     **{
-    f'sho_{k}': SHOKernel(param[19][k], param[20][k], param[21][k])
+    f'sho_{k}': SHOKernel(param[21][k], param[22][k], param[23][k])
     for k in range(nsho)
     })
 
@@ -292,7 +309,9 @@ def test_set_param():
     for k in range(nmat32)] + [f'mat32_{k}.rho'
     for k in range(nmat32)] + [f'mat52_{k}.sig'
     for k in range(nmat52)] + [f'mat52_{k}.rho'
-    for k in range(nmat52)] + [f'usho_{k}.sig'
+    for k in range(nmat52)] + [f'gauss_{k}.sig'
+    for k in range(ngauss)] + [f'gauss_{k}.rho'
+    for k in range(ngauss)] + [f'usho_{k}.sig'
     for k in range(nusho)] + [f'usho_{k}.P0'
     for k in range(nusho)] + [f'usho_{k}.Q'
     for k in range(nusho)] + [f'osho_{k}.sig'
@@ -769,7 +788,7 @@ def _test_conditional_derivative(kernel=None):
 
 def test_all_conditional():
   for kernel in [
-      None, ['mat32_0', 'usho_0'], ['osho_0'], ['mat52_0', 'sho_0']
+      None, ['mat32_0', 'usho_0'], ['osho_0'], ['mat52_0', 'sho_0'], ['gauss_0', 'sho_0']
   ]:
     _test_self_conditional(kernel)
     _test_conditional(kernel)
