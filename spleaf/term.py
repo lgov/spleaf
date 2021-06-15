@@ -671,7 +671,7 @@ class Matern32Kernel(Kernel):
       sum_grad_d2U_1 = np.sum(grad_d2U[:, self._offset + 1])
       grad['sig'] -= 2 * self._sig * self._la2 * sum_grad_d2U_1
       grad['rho'] -= self._la2 / self._rho * (np.sum(
-        (4 - 3 * self._x) * grad_dU[:, self._offset]) -
+        (4 - 3 * self._x) * grad_d2U[:, self._offset]) -
         2 * self._a * sum_grad_d2U_1)
 
     return (grad)
@@ -814,7 +814,7 @@ class Matern52Kernel(Kernel):
         grad_d2U[:, self._offset + 1])
       grad['sig'] += 2 * self._sig * self._la2 * sum_grad_d2U_12
       grad['rho'] -= self._la2 / self._rho * (np.sum(
-        (8 / 3 + self._x - 2 * self._x2_3) * grad_dU[:, self._offset]) +
+        (8 / 3 + self._x - 4 * self._x2_3) * grad_d2U[:, self._offset]) +
         self._a *
         (2 * sum_grad_d2U_12 - np.sum(self._x * grad_d2U[:, self._offset + 2]))
                                               )
