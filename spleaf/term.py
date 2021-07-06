@@ -1530,7 +1530,7 @@ class MultiSeriesKernel(Kernel):
       U2[:, self._offset:self._offset + self._kernel._r] += beta * kernel_dU2
       # cov(dGP, dGP)
       U2[:, self._offset + self._kernel._r:self._offset +
-        2 * self._kernel._r] = beta * kernel_d2U2
+        2 * self._kernel._r] += beta * kernel_d2U2
 
     for k in range(self._coef_r):
       phi2[:, self._offset + k * self._kernel._r:self._offset +
