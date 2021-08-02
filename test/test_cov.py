@@ -16,6 +16,7 @@ ngauss = 1
 nusho = 1
 nosho = 1
 nsho = 1
+naigrain = 1
 delta = 1e-6
 coef_delta = -1.3
 coef_num_err = 10
@@ -110,6 +111,10 @@ def _generate_random_C(seed=0, deriv=False):
   sig_sho = np.random.uniform(0.5, 1.5, nsho)
   P0_sho = 10**np.random.uniform(-2, 2, nsho)
   Q_sho = np.random.uniform(0.01, 2.0, nsho)
+  sig_aigrain = np.random.uniform(0.5, 1.5, naigrain)
+  P_aigrain = 10**np.random.uniform(-2, 2, naigrain)
+  rho_aigrain = 10**np.random.uniform(-2, 2, naigrain)
+  eta_aigrain = 10**np.random.uniform(-2, 1, naigrain)
 
   if deriv:
     return (Cov(t,
@@ -134,7 +139,7 @@ def _generate_random_C(seed=0, deriv=False):
       for k in range(nmat52)
       },
       **{
-      f'gauss_{k}': QuasiGaussianKernel(sig_gauss[k], rho_gauss[k])
+      f'gauss_{k}': ApproxGaussianKernel(sig_gauss[k], rho_gauss[k])
       for k in range(ngauss)
       },
       **{
@@ -148,6 +153,11 @@ def _generate_random_C(seed=0, deriv=False):
       **{
       f'sho_{k}': SHOKernel(sig_sho[k], P0_sho[k], Q_sho[k])
       for k in range(nsho)
+      },
+      **{
+      f'aigrain_{k}': ApproxAigrainKernel(sig_aigrain[k], P_aigrain[k],
+      rho_aigrain[k], eta_aigrain[k])
+      for k in range(naigrain)
       }))
   else:
     return (Cov(t,
@@ -181,7 +191,7 @@ def _generate_random_C(seed=0, deriv=False):
       for k in range(nmat52)
       },
       **{
-      f'gauss_{k}': QuasiGaussianKernel(sig_gauss[k], rho_gauss[k])
+      f'gauss_{k}': ApproxGaussianKernel(sig_gauss[k], rho_gauss[k])
       for k in range(ngauss)
       },
       **{
@@ -195,6 +205,11 @@ def _generate_random_C(seed=0, deriv=False):
       **{
       f'sho_{k}': SHOKernel(sig_sho[k], P0_sho[k], Q_sho[k])
       for k in range(nsho)
+      },
+      **{
+      f'aigrain_{k}': ApproxAigrainKernel(sig_aigrain[k], P_aigrain[k],
+      rho_aigrain[k], eta_aigrain[k])
+      for k in range(naigrain)
       }))
 
 
@@ -224,11 +239,15 @@ def _generate_random_param(seed=1):
   sig_sho = np.random.uniform(0.5, 1.5, nsho)
   P0_sho = 10**np.random.uniform(-2, 2, nsho)
   Q_sho = np.random.uniform(0.01, 2.0, nsho)
+  sig_aigrain = np.random.uniform(0.5, 1.5, naigrain)
+  P_aigrain = 10**np.random.uniform(-2, 2, naigrain)
+  rho_aigrain = 10**np.random.uniform(-2, 2, naigrain)
+  eta_aigrain = 10**np.random.uniform(-2, 1, naigrain)
 
   return (sig_jitter, sig_jitter_inst, sig_calib_inst, a_exp, la_exp, a_qper,
-    b_qper, la_qper, nu_qper, sig_mat32, rho_mat32, sig_mat52, rho_mat52, sig_gauss, rho_gauss,
-    sig_usho, P0_usho, Q_usho, sig_osho, P0_osho, Q_osho, sig_sho, P0_sho,
-    Q_sho)
+    b_qper, la_qper, nu_qper, sig_mat32, rho_mat32, sig_mat52, rho_mat52,
+    sig_gauss, rho_gauss, sig_usho, P0_usho, Q_usho, sig_osho, P0_osho, Q_osho,
+    sig_sho, P0_sho, Q_sho, sig_aigrain, P_aigrain, rho_aigrain, eta_aigrain)
 
 
 def test_Cov():
@@ -280,7 +299,7 @@ def test_set_param():
     for k in range(nmat52)
     },
     **{
-    f'gauss_{k}': QuasiGaussianKernel(param[13][k], param[14][k])
+    f'gauss_{k}': ApproxGaussianKernel(param[13][k], param[14][k])
     for k in range(ngauss)
     },
     **{
@@ -294,6 +313,11 @@ def test_set_param():
     **{
     f'sho_{k}': SHOKernel(param[21][k], param[22][k], param[23][k])
     for k in range(nsho)
+    },
+    **{
+    f'aigrain_{k}': ApproxAigrainKernel(param[24][k], param[25][k],
+    param[26][k], param[27][k])
+    for k in range(naigrain)
     })
 
   C.set_param(np.concatenate(param),
@@ -319,7 +343,11 @@ def test_set_param():
     for k in range(nosho)] + [f'osho_{k}.Q'
     for k in range(nosho)] + [f'sho_{k}.sig'
     for k in range(nsho)] + [f'sho_{k}.P0'
-    for k in range(nsho)] + [f'sho_{k}.Q' for k in range(nsho)])
+    for k in range(nsho)] + [f'sho_{k}.Q'
+    for k in range(nsho)] + [f'aigrain_{k}.sig'
+    for k in range(naigrain)] + [f'aigrain_{k}.P'
+    for k in range(naigrain)] + [f'aigrain_{k}.rho'
+    for k in range(naigrain)] + [f'aigrain_{k}.eta' for k in range(naigrain)])
 
   C_full = C.expand()
   Cb_full = Cb.expand()
@@ -788,7 +816,8 @@ def _test_conditional_derivative(kernel=None):
 
 def test_all_conditional():
   for kernel in [
-      None, ['mat32_0', 'usho_0'], ['osho_0'], ['mat52_0', 'sho_0'], ['gauss_0', 'sho_0']
+      None, ['mat32_0', 'usho_0'], ['osho_0'], ['mat52_0', 'sho_0'],
+    ['gauss_0', 'sho_0'], ['aigrain_0']
   ]:
     _test_self_conditional(kernel)
     _test_conditional(kernel)

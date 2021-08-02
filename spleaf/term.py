@@ -20,8 +20,8 @@
 __all__ = [
   'Error', 'Jitter', 'InstrumentJitter', 'CalibrationError',
   'CalibrationJitter', 'ExponentialKernel', 'QuasiperiodicKernel',
-  'Matern32Kernel', 'Matern52Kernel', 'QuasiGaussianKernel', 'USHOKernel',
-  'OSHOKernel', 'SHOKernel', 'MultiSeriesKernel'
+  'Matern32Kernel', 'Matern52Kernel', 'ApproxGaussianKernel', 'USHOKernel',
+  'OSHOKernel', 'SHOKernel', 'ApproxAigrainKernel', 'MultiSeriesKernel'
 ]
 
 import numpy as np
@@ -883,11 +883,20 @@ class Matern52Kernel(Kernel):
     return (self._a * np.exp(-dx) * (1 + dx + dx * dx / 3))
 
 
-class QuasiGaussianKernel(Kernel):
+class ApproxGaussianKernel(Kernel):
   r"""
-  Approximate Gaussian kernel.
+  Kernel roughly approximating a Gaussian kernel.
 
-  .. math:: K(\delta t) \approx \sigma^2 \mathrm{e}^{-\frac{1}{2}\left(\frac{\delta t}{\rho}\right)^2}
+  The exact Gaussian kernel is written as
+
+  .. math:: K(\delta t) = \sigma^2 \exp\left(-\frac{1}{2}\left(\frac{\delta t}{\rho}\right)^2\right)
+
+  while this kernel approximates it with
+
+  .. math:: K(\delta t) = \sigma^2 \exp\left(-\lambda\delta t\right)\left(1 + \frac{\lambda}{\nu}\sin\left(\nu\delta t\right)\right),
+
+  with :math:`\lambda = 1.06/\rho` and :math:`\nu = \lambda/0.74`.
+
 
   Parameters
   ----------
@@ -1254,6 +1263,154 @@ class SHOKernel(Kernel):
       return (self._usho.eval(dt))
     else:
       return (self._osho.eval(dt))
+
+
+class ApproxAigrainKernel(Kernel):
+  r"""
+  Kernel roughly approximating Aigrain's kernel.
+
+  Aigrain's exact kernel is written as
+
+  .. math:: K(\delta t) = \sigma^2 \exp \left(- \frac{\delta t^2}{2 \rho^2}
+    - \frac{\sin^2 \left( \frac{\pi \delta t }{P}\right) }{2 \eta^2}\right),
+
+  while this kernel approximates it with
+
+  .. math:: K(\delta t) = \sigma^2\frac{K_{3/2}(\Delta t)
+    + f K_{\mathrm{SHO,\,fund.}}(\Delta t)
+    + \frac{f^2}{4} K_{\mathrm{SHO,\,harm.}}(\Delta t)}{1+f+\frac{f^2}{4}},
+
+  where
+
+  .. math::
+    \begin{align}
+      \nu &= \frac{2\pi}{P},\\
+      f &= \frac{1}{4\eta^2},\\
+      K_{3/2}(\Delta t) &= \exp\left(-\frac{\sqrt{3}\Delta t}{\rho}\right)\left(1+\frac{\sqrt{3}\Delta t}{\rho}\right),\\
+      K_{\mathrm{SHO,\,fund.}}(\Delta t) &= \exp\left(-\frac{\Delta t}{\rho}\right)\left(\cos\left(\nu \Delta t\right)+\frac{1}{\nu\rho}\sin\left(\nu \Delta t\right)\right),\\
+      K_{\mathrm{SHO,\,harm.}}(\Delta t) &= \exp\left(-\frac{\Delta t}{\rho}\right)\left(\cos\left(2\nu \Delta t\right)+\frac{1}{2\nu\rho}\sin\left(2\nu \Delta t\right)\right).
+    \end{align}
+
+  Parameters
+  ----------
+  sig : float
+    Amplitude (std).
+  P : float
+    Period.
+  rho : float
+    Scale.
+  eta : float
+    Scale of oscillations.
+  """
+
+  def __init__(self, sig, P, rho, eta):
+    super().__init__()
+    self._sig = sig
+    self._P = P
+    self._rho = rho
+    self._eta = eta
+    sig0, a1, a2, b1, b2, la, nu = self._getcoefs()
+    self._mat = Matern32Kernel(sig0, self._rho)
+    self._qp1 = QuasiperiodicKernel(a1, b1, la, nu)
+    self._qp2 = QuasiperiodicKernel(a2, b2, la, 2 * nu)
+    self._kernels = [self._mat, self._qp1, self._qp2]
+    self._r = sum(kernel._r for kernel in self._kernels)
+    self._param = ['sig', 'P', 'rho', 'eta']
+
+  def _getcoefs(self):
+    la = 1 / self._rho
+    self._var = self._sig * self._sig
+    self._eta2 = self._eta * self._eta
+    self._f = 1 / (4 * self._eta2)
+    self._f2 = self._f * self._f
+    self._f2_4 = self._f2 / 4
+    self._deno = 1 + self._f + self._f2_4
+    a0 = self._var / self._deno
+    sig0 = np.sqrt(a0)
+    a1 = self._f * a0
+    a2 = self._f2_4 * a0
+    nu = 2 * np.pi / self._P
+    la_nu = la / nu
+    b1 = a1 * la_nu
+    b2 = a2 * la_nu / 2
+    return (sig0, a1, a2, b1, b2, la, nu)
+
+  def _link(self, cov, offset):
+    super()._link(cov, offset)
+    off = offset
+    for kernel in self._kernels:
+      kernel._link(cov, off)
+      off += kernel._r
+
+  def _compute(self):
+    for kernel in self._kernels:
+      kernel._compute()
+
+  def _set_param(self, sig=None, P=None, rho=None, eta=None):
+    if sig is not None:
+      self._sig = sig
+    if P is not None:
+      self._P = P
+    if rho is not None:
+      self._rho = rho
+    if eta is not None:
+      self._eta = eta
+    sig0, a1, a2, b1, b2, la, nu = self._getcoefs()
+    self._mat._set_param(sig0, self._rho)
+    self._qp1._set_param(a1, b1, la, nu)
+    self._qp2._set_param(a2, b2, la, 2 * nu)
+
+  def _grad_param(self, grad_dU=None, grad_d2U=None):
+    gradMat = self._mat._grad_param(grad_dU, grad_d2U)
+    gradQP1 = self._qp1._grad_param(grad_dU, grad_d2U)
+    gradQP2 = self._qp2._grad_param(grad_dU, grad_d2U)
+
+    sgs0 = self._mat._sig * gradMat['sig']
+    aga1 = self._qp1._a * gradQP1['a']
+    aga2 = self._qp2._a * gradQP2['a']
+    bgb1 = self._qp1._b * gradQP1['b']
+    bgb2 = self._qp2._b * gradQP2['b']
+    bgb = bgb1 + bgb2
+    sgs = sgs0 + 2 * (aga1 + aga2 + bgb)
+
+    grad = {}
+    grad['sig'] = sgs / self._sig
+    grad['P'] = (bgb - self._qp1._nu * gradQP1['nu'] -
+      self._qp2._nu * gradQP2['nu']) / self._P
+    grad['rho'] = gradMat['rho'] - (bgb + self._qp1._la *
+      (gradQP1['la'] + gradQP2['la'])) / self._rho
+    grad['eta'] = (sgs * (self._f + self._f2 / 2) / self._deno - 2 *
+      (aga1 + bgb1 + 2 * (aga2 + bgb2))) / self._eta
+    return (grad)
+
+  def _compute_t2(self, t2, dt2, U2, V2, phi2, ref2left, dt2left, dt2right,
+    phi2left, phi2right):
+    for kernel in self._kernels:
+      kernel._compute_t2(t2, dt2, U2, V2, phi2, ref2left, dt2left, dt2right,
+        phi2left, phi2right)
+
+  def _deriv(self, calc_d2=False):
+    for kernel in self._kernels:
+      kernel._deriv(calc_d2)
+
+  def _deriv_t2(self,
+    t2,
+    dt2,
+    dU2,
+    V2,
+    phi2,
+    ref2left,
+    dt2left,
+    dt2right,
+    phi2left,
+    phi2right,
+    d2U2=None):
+    for kernel in self._kernels:
+      kernel._deriv_t2(t2, dt2, dU2, V2, phi2, ref2left, dt2left, dt2right,
+        phi2left, phi2right, d2U2)
+
+  def eval(self, dt):
+    return (sum(kernel.eval(dt) for kernel in self._kernels))
 
 
 class _FakeCov:
