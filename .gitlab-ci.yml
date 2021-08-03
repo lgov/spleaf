@@ -8,7 +8,9 @@ stages:
 Build distribution:
   stage: build
   before_script:
-    - export PATH=$PATH:/opt/anaconda3/bin/
+    - export PATH=$PATH:$PWD/../miniconda/bin/
+    - source $PWD/../miniconda/etc/profile.d/conda.sh
+    - conda update -n base -c defaults conda
     - conda env create -f spleaf_env.yml
     - conda activate spleaf
   script:
@@ -24,7 +26,8 @@ Build distribution:
 Run test:
   stage: test
   before_script:
-    - export PATH=$PATH:/opt/anaconda3/bin/
+    - export PATH=$PATH:$PWD/../miniconda/bin/
+    - source $PWD/../miniconda/etc/profile.d/conda.sh
     - conda env create -f spleaf_env.yml
     - conda activate spleaf
   script:
@@ -38,7 +41,8 @@ Run test:
 Generate documentation:
   stage: documentation
   before_script:
-    - export PATH=$PATH:/opt/anaconda3/bin/
+    - export PATH=$PATH:$PWD/../miniconda/bin/
+    - source $PWD/../miniconda/etc/profile.d/conda.sh
     - conda env create -f spleaf_env.yml
     - conda activate spleaf
   script:
