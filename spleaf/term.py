@@ -1417,7 +1417,7 @@ class MultiSeriesKernel(Kernel):
   applied to heterogenous time series.
 
   This kernel allows to model efficiently
-  several (heterogeneous) time series (:math`y_i`)
+  several (heterogeneous) time series (:math:`y_i`)
   which depend on different linear combinations
   of the same GP (:math:`G`)
   and its derivative (:math:`G'`):
