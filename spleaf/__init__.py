@@ -134,7 +134,7 @@ class Spleaf():
 
     # Kernel derivative
     self._dU = None
-    self._d2U = None
+    self._dV = None
 
     # Other
     self._logdet_value = None
@@ -796,7 +796,7 @@ class Spleaf():
   def self_conditional_derivative(self,
     y,
     dU=None,
-    d2U=None,
+    dV=None,
     calc_cov=False,
     index=None):
     r"""
@@ -808,8 +808,8 @@ class Spleaf():
     ----------
     y : (n,) ndarray
       The vector of observed values :math:`y`.
-    dU, d2U : (n, r) ndarrays or None
-      Symmetric semiseparable part of the derivatives.
+    dU, dV : (n, r) ndarrays or None
+      Semiseparable part of the derivatives.
       If None, the values from a previous call are kept.
     calc_cov : False (default), True, or 'diag'
       Whether to output only the conditional mean (False),
@@ -847,8 +847,8 @@ class Spleaf():
 
     if dU is not None:
       self._dU = dU
-    if d2U is not None:
-      self._d2U = d2U
+    if dV is not None:
+      self._dV = dV
 
     u = self.solveLT(self.solveL(y) / self.D)
     dy = np.empty(self.n)
@@ -863,7 +863,7 @@ class Spleaf():
     d2K = np.empty((self.n, self.n))
     libspleaf.spleaf_expandantisep(self.n, self.r, ri, index, self._dU, self.V,
       self.phi, dK)
-    libspleaf.spleaf_expandsep(self.n, self.r, ri, index, self._d2U, self.V,
+    libspleaf.spleaf_expandsep(self.n, self.r, ri, index, self._dU, self._dV,
       self.phi, d2K)
     H = np.array([self.solveL(dKk) / self.sqD() for dKk in dK])
 
@@ -875,8 +875,8 @@ class Spleaf():
   def conditional_derivative(self,
     y,
     dU2,
-    d2U2,
     V2,
+    dV2,
     phi2,
     ref2left,
     phi2left,
@@ -893,8 +893,8 @@ class Spleaf():
     ----------
     y : (n,) ndarray
       The vector of observed values :math:`y`.
-    dU2, d2U2, V2 : (n2, r) ndarrays
-      Symmetric semiseparable part at new abscissas,
+    dU2, V2, dV2 : (n2, r) ndarrays
+      Semiseparable part at new abscissas,
       with preconditionning matrix `phi2`.
     phi2 : (n2-1, r) ndarray
       Preconditionning matrix for the semiseparable part at new abscissas.
@@ -907,7 +907,7 @@ class Spleaf():
       Preconditionning matrix linking new abscissas
       with their closest original abscissas to the right.
     dU : (n, r) ndarray or None
-      Symmetric semiseparable part of the derivative.
+      Semiseparable part of the derivative.
       If None, the value from a previous call is kept.
     calc_cov : False (default), True, or 'diag'
       Whether to output only the conditional mean (False),
@@ -961,11 +961,11 @@ class Spleaf():
     Hm = np.array([self.solveL(dKmk) / self.sqD() for dKmk in dKm])
 
     if calc_cov == 'diag':
-      return (y2, np.sum(d2U2[:, index] * V2[:, index], axis=1) -
+      return (y2, np.sum(dU2[:, index] * dV2[:, index], axis=1) -
         np.sum(Hm * Hm, axis=1))
 
     d2K = np.empty((n2, n2))
-    libspleaf.spleaf_expandsep(n2, self.r, ri, index, d2U2, V2, phi2, d2K)
+    libspleaf.spleaf_expandsep(n2, self.r, ri, index, dU2, dV2, phi2, d2K)
     return (y2, d2K - Hm @ Hm.T)
 
   def sample(self, nreal=None):

@@ -154,7 +154,7 @@ class Cov(Spleaf):
 
     # Kernel derivative
     self._dU = np.empty((self.n, self.r))
-    self._d2U = np.empty((self.n, self.r))
+    self._dV = np.empty((self.n, self.r))
 
   def get_param(self, param=None):
     r"""
@@ -501,20 +501,20 @@ class Cov(Spleaf):
     dt2right[ref2left == self.n - 1] = 0  # useless but avoid overflow warning
 
     if calc_cov:
-      d2U2 = np.empty((n2, self.r))
+      dV2 = np.empty((n2, self.r))
     else:
-      d2U2 = None
+      dV2 = None
 
     kernel_list = self.kernel if kernel is None else kernel
     for key in kernel_list:
       self.kernel[key]._deriv(False)
       self.kernel[key]._deriv_t2(t2, dt2, dU2, V2, phi2, ref2left, dt2left,
-        dt2right, phi2left, phi2right, d2U2)
+        dt2right, phi2left, phi2right, dV2)
 
     return (super().conditional_derivative(y,
       dU2,
-      d2U2,
       V2,
+      dV2,
       phi2,
       ref2left,
       phi2left,
