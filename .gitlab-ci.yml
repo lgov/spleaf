@@ -73,6 +73,10 @@ Release and deploy on Production:
     - git config --global user.name 'Gitlab CI'
     - git config --global user.email ''
     - git remote set-url origin "https://gitlab-ci-token:$RELEASE_TOKEN@gitlab.unige.ch/jean-baptiste.delisle/spleaf.git"
+    - export PATH=$PATH:$PWD/../miniconda/bin/
+    - source $PWD/../miniconda/etc/profile.d/conda.sh
+    - conda env create -f spleaf_env.yml
+    - conda activate spleaf
   script:
     # Tag
     - VERSION=`grep __version__ spleaf/__info__.py | sed 's/.*version__ = "//' | sed 's/"//'`
@@ -82,10 +86,14 @@ Release and deploy on Production:
     - CHANGES=`cat CHANGES.txt`
     # Add release on gitlab (via gitlab API)
     - curl -X POST -H "PRIVATE-TOKEN:$RELEASE_TOKEN" -F "name=Release spleaf $TAG_VERSION" -F "tag_name=$TAG_VERSION" -F "ref=$TAG_VERSION" -F "description=Changes:$CHANGES" 'https://gitlab.unige.ch/api/v4/projects/1383/releases'
-    # Deploy on production
+    # Deploy on https://obswww.unige.ch/~delisle/
     - cp dist/*.tar.gz /www/people/delisle/public/spleaf
     - rm -rf /www/people/delisle/public/spleaf/doc/*
     - cp -R doc/build/html/* /www/people/delisle/public/spleaf/doc
+    - rm -rf /www/people/delisle/public/spleaf/doc_hist/${TAG_VERSION}
+    - cp -R doc/build/html /www/people/delisle/public/spleaf/doc_hist/${TAG_VERSION}
+    # Deploy on Pypi
+    - python -m twine upload dist/*.tar.gz
     # Upgrade to next version
     - MAJOR_DIGIT=`echo $VERSION | awk -F. '{print $1}'`
     - MINOR_DIGIT=`echo $VERSION | awk -F. '{print $2}'`
@@ -98,4 +106,7 @@ Release and deploy on Production:
     - git add spleaf/__info__.py
     - git commit -m "Upgrade project to next version $NEW_VERSION"
     - git push origin master --quiet
+  after_script:
+    - conda deactivate
+    - conda env remove -n spleaf
   when: manual

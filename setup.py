@@ -26,6 +26,8 @@ path = os.path.abspath(os.path.dirname(__file__))
 info = {}
 with open(os.path.join(path, 'spleaf', '__info__.py'), 'r') as f:
   exec(f.read(), info)
+with open('README.rst', 'r', encoding='utf-8') as readme:
+  long_description = readme.read()
 
 c_ext = Extension('spleaf.libspleaf',
   sources=['spleaf/pywrapspleaf.c', 'spleaf/libspleaf.c'],
@@ -37,6 +39,7 @@ setup(name=info['__title__'],
   author_email=info['__author_email__'],
   license=info['__license__'],
   description=info['__description__'],
+  long_description=long_description,
   url=info['__url__'],
   packages=['spleaf'],
   ext_modules=[c_ext],

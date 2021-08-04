@@ -23,11 +23,11 @@ Installation
 
 The S+LEAF package can be installed using the pip utility
 
-``pip install --extra-index-url https://obswww.unige.ch/~delisle spleaf``
+``pip install spleaf``
 
 and upgraded with
 
-``pip install --extra-index-url https://obswww.unige.ch/~delisle spleaf --upgrade``
+``pip install spleaf --upgrade``
 
 Usage
 -----
