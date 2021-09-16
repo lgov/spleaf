@@ -31,6 +31,7 @@ with open('README.rst', 'r', encoding='utf-8') as readme:
 
 c_ext = Extension('spleaf.libspleaf',
   sources=['spleaf/pywrapspleaf.c', 'spleaf/libspleaf.c'],
+  include_dirs=[numpy.get_include()],
   language='c')
 
 setup(name=info['__title__'],
